@@ -367,6 +367,7 @@
 
     let categoriaActiva = 'Todas';
     let todosLosProductos = [];
+    const stockMap = new Map();
 
     function mostrarToast(msg) {
       $toast.textContent = msg;
@@ -395,7 +396,11 @@
     }
 
     async function cargarProductos() {
-      const productos = await window.api.getProductsByCategory(categoriaActiva);
+      const [productos, todos] = await Promise.all([
+        window.api.getProductsByCategory(categoriaActiva),
+        window.api.getAllProducts()
+      ]);
+      for (const p of todos) stockMap.set(p.id, p.stock_actual);
       renderProductos(productos);
     }
 
@@ -435,8 +440,7 @@
     function agregarAlCarrito(id, nombre, variante, precio) {
       const existente = carrito.find(i => i.producto_id === id);
       const enCarrito = existente ? existente.cantidad : 0;
-      const card = document.querySelector(`.producto-card[data-id="${id}"]`);
-      const stockDisponible = card ? parseInt(card.dataset.stock) : 0;
+      const stockDisponible = stockMap.get(id) ?? 0;
 
       if (enCarrito >= stockDisponible) {
         mostrarToast('Stock insuficiente');
@@ -475,8 +479,7 @@
       }
 
       $listaCarrito.innerHTML = carrito.map(item => {
-        const card = document.querySelector(`.producto-card[data-id="${item.producto_id}"]`);
-        const stockRestante = card ? parseInt(card.dataset.stock) - item.cantidad : 0;
+        const stockRestante = (stockMap.get(item.producto_id) ?? 0) - item.cantidad;
         const stockOk = stockRestante >= 0;
         return `
         <div class="item-carrito">
