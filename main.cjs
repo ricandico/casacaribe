@@ -130,6 +130,16 @@ app.whenReady().then(() => {
     return { ventas, total, cantidad: ventas.length, porPago, usuario: usuario?.username || '' };
   });
 
+  ipcMain.handle('get-today-total', (_, usuario_id) => {
+    const hoy = new Date().toISOString().slice(0, 10);
+    const res = db.prepare(`
+      SELECT COUNT(*) as cantidad, COALESCE(SUM(total), 0) as total
+      FROM ventas
+      WHERE usuario_id = ? AND DATE(fecha_hora) = ?
+    `).get(usuario_id, hoy);
+    return res;
+  });
+
   ipcMain.handle('get-sale-detail', (_, saleId) => {
     return db.prepare(`
       SELECT dv.cantidad, dv.precio_unitario, dv.subtotal,

@@ -384,6 +384,11 @@
 
   <div class="layout">
     <div class="panel-productos">
+      <div id="todayBar" style="display:none;background:#e4f0e0;border-radius:10px;padding:10px 16px;margin-bottom:12px;justify-content:space-between;align-items:center;font-size:14px">
+        <span style="font-weight:600;color:#2d6a1e">📅 Hoy</span>
+        <span id="todayTotal" style="font-weight:700;color:#2d6a1e"></span>
+        <span id="todayCount" style="color:#2d6a1e"></span>
+      </div>
       <div class="categorias" id="categorias"></div>
       <input type="text" class="buscador" id="buscador" placeholder="Buscar producto…">
       <div class="productos-grid" id="productosGrid"></div>
@@ -679,6 +684,7 @@
         $modalPago.classList.remove('mostrar');
         $notas.value = '';
         cargarProductos();
+        cargarTodayBar();
       } catch (err) {
         mostrarToast('Error al registrar la venta');
         console.error(err);
@@ -970,6 +976,8 @@
       document.getElementById('loginOverlay').style.display = 'none';
       document.getElementById('appContainer').classList.add('mostrar');
 
+      cargarTodayBar();
+
       const adminBtns = document.querySelectorAll('.btn-admin');
       for (const btn of adminBtns) {
         btn.style.display = user.rol === 'admin' ? '' : 'none';
@@ -1011,14 +1019,28 @@
       document.getElementById('loginUser').value = '';
       document.getElementById('loginPass').value = '';
       document.getElementById('loginError').textContent = '';
+      document.getElementById('todayBar').style.display = 'none';
       carrito.length = 0;
       renderCarrito();
     });
+
+    async function cargarTodayBar() {
+      const data = await window.api.getTodayTotal(usuarioActual.id);
+      const bar = document.getElementById('todayBar');
+      if (data.cantidad > 0) {
+        bar.style.display = 'flex';
+        document.getElementById('todayTotal').textContent = formatear(data.total);
+        document.getElementById('todayCount').textContent = `${data.cantidad} venta${data.cantidad !== 1 ? 's' : ''}`;
+      } else {
+        bar.style.display = 'none';
+      }
+    }
 
     async function initApp() {
       const categorias = await window.api.getCategories();
       renderCategorias(categorias);
       cargarProductos();
+      cargarTodayBar();
     }
   </script>
 </body>
