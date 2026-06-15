@@ -429,6 +429,8 @@
       <div style="font-size:18px;font-weight:700;color:#5c3a1e;text-align:center;margin-bottom:12px" id="modalPagoTotal"></div>
 
       <div class="pago-fila"><label>Efectivo</label><input class="pago-input pago-metodo" id="pagoEfectivo" type="number" min="0" step="any" value="0"></div>
+      <div class="pago-fila" id="filaRecibido" style="display:none"><label>Recibí</label><input class="pago-input" id="pagoRecibido" type="number" min="0" step="any" value="0" style="font-weight:600"></div>
+      <div class="pago-fila" id="filaCambio" style="display:none"><label>Cambio</label><input class="pago-input" id="pagoCambio" type="text" readonly style="background:#e4f0e0;color:#2d6a1e;font-weight:700"></div>
       <div class="pago-fila"><label>Mercado Pago</label><input class="pago-input pago-metodo" id="pagoMp" type="number" min="0" step="any" value="0"></div>
       <div class="pago-fila"><label>Débito</label><input class="pago-input pago-metodo" id="pagoDebito" type="number" min="0" step="any" value="0"></div>
       <div class="pago-fila"><label>Fiado</label><input class="pago-input" id="pagoFiado" type="number" min="0" step="any" value="0" readonly style="background:#f0e8e0;color:#8a7a6a"></div>
@@ -539,6 +541,10 @@
     const $pagoMp = document.getElementById('pagoMp');
     const $pagoDebito = document.getElementById('pagoDebito');
     const $pagoFiado = document.getElementById('pagoFiado');
+    const $pagoRecibido = document.getElementById('pagoRecibido');
+    const $pagoCambio = document.getElementById('pagoCambio');
+    const $filaRecibido = document.getElementById('filaRecibido');
+    const $filaCambio = document.getElementById('filaCambio');
     const $resumenPago = document.getElementById('resumenPago');
     const $notasPago = document.getElementById('notasPago');
     const $btnCancelarPago = document.getElementById('btnCancelarPago');
@@ -706,6 +712,16 @@
       $pagoFiado.value = fiado.toFixed(2);
       $modalPagoTotal.textContent = formatear(totalCarrito);
 
+      const tieneEfectivo = ef > 0;
+      $filaRecibido.style.display = tieneEfectivo ? '' : 'none';
+      $filaCambio.style.display = tieneEfectivo ? '' : 'none';
+
+      if (tieneEfectivo) {
+        const recibido = parseFloat($pagoRecibido.value) || 0;
+        const cambio = Math.max(0, recibido - ef);
+        $pagoCambio.value = cambio > 0 ? formatear(cambio) : '$ 0,00';
+      }
+
       if (fiado > 0) {
         $resumenPago.innerHTML = `
           <div class="${pagado >= totalCarrito ? 'ok' : 'error'}">
@@ -720,12 +736,14 @@
     document.querySelectorAll('.pago-metodo').forEach(input => {
       input.addEventListener('input', actualizarResumenPago);
     });
+    $pagoRecibido.addEventListener('input', actualizarResumenPago);
 
     $btnPagar.addEventListener('click', () => {
       const total = carrito.reduce((t, i) => t + i.subtotal, 0);
       $pagoEfectivo.value = total.toFixed(2);
       $pagoMp.value = '0';
       $pagoDebito.value = '0';
+      $pagoRecibido.value = total.toFixed(2);
       $notasPago.value = '';
       actualizarResumenPago();
       $modalPago.classList.add('mostrar');
@@ -733,6 +751,8 @@
 
     $btnCancelarPago.addEventListener('click', () => {
       $modalPago.classList.remove('mostrar');
+      $filaRecibido.style.display = 'none';
+      $filaCambio.style.display = 'none';
     });
 
     $btnConfirmarPago.addEventListener('click', async () => {
