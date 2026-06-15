@@ -733,8 +733,8 @@
     $btnPagar.addEventListener('click', () => {
       const total = carrito.reduce((t, i) => t + i.subtotal, 0);
       $pagoEfectivo.value = total.toFixed(2);
-      $pagoMp.value = '0';
-      $pagoTransferencia.value = '0';
+      $pagoMp.value = '';
+      $pagoTransferencia.value = '';
       $notasPago.value = '';
       actualizarResumenPago();
       $modalPago.classList.add('mostrar');
@@ -795,9 +795,7 @@
       }
     });
 
-    $modalPago.addEventListener('click', (e) => {
-      if (e.target === $modalPago) $modalPago.classList.remove('mostrar');
-    });
+
 
     document.getElementById('modalStock').addEventListener('click', (e) => {
       if (e.target === document.getElementById('modalStock')) {
