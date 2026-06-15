@@ -331,17 +331,7 @@
     .login-card button:hover { background: #7a4f2e; }
     .login-error { color: #b33a3a; font-size: 13px; margin-top: 8px; }
 
-    .app-container { display: none; flex-direction: column; height: 100vh; position: relative; }
-    .app-container::before {
-      content: '';
-      position: fixed;
-      top: 0; left: 0; right: 0; bottom: 0;
-      background: url('logo.png') center center / 400px auto no-repeat;
-      opacity: 0.06;
-      pointer-events: none;
-      z-index: 0;
-    }
-    .app-container > * { position: relative; z-index: 1; }
+    .app-container { display: none; flex-direction: column; height: 100vh; }
     .app-container.mostrar { display: flex; }
 
     .user-info {
@@ -366,6 +356,7 @@
 <body>
   <div class="login-overlay" id="loginOverlay">
     <div class="login-card">
+      <img src="logo.png" style="width:180px;height:auto;margin-bottom:12px" alt="Casa Caribe">
       <h1>Casa Caribe</h1>
       <p>Panadería — Iniciar sesión</p>
       <input type="text" id="loginUser" placeholder="Usuario" autocomplete="off">
