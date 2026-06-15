@@ -3,9 +3,11 @@
   "main": "main.cjs",
   "scripts": {
     "start": "electron .",
-    "init-db": "node init_db.js"
+    "init-db": "node init_db.js",
+    "postinstall": "electron-rebuild -f -w better-sqlite3"
   },
   "devDependencies": {
+    "@electron/rebuild": "^4.0.4",
     "electron": "^42.4.0"
   },
   "dependencies": {
