@@ -22,6 +22,24 @@ function createWindow() {
 app.whenReady().then(() => {
   db = new Database('panaderia.db');
 
+  // Migraciones automáticas
+  const colVentas = db.prepare("PRAGMA table_info(ventas)").all();
+  if (!colVentas.find(c => c.name === 'usuario_nombre')) {
+    db.prepare("ALTER TABLE ventas ADD COLUMN usuario_nombre TEXT").run();
+  }
+
+  db.prepare(`
+    CREATE TABLE IF NOT EXISTS cobros (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      venta_id INTEGER NOT NULL,
+      monto REAL NOT NULL,
+      fecha TEXT DEFAULT (datetime('now','localtime')),
+      usuario_id INTEGER,
+      usuario_nombre TEXT,
+      FOREIGN KEY (venta_id) REFERENCES ventas(id) ON DELETE CASCADE
+    )
+  `).run();
+
   createWindow();
 
   ipcMain.handle('get-categories', () => {
@@ -39,15 +57,15 @@ app.whenReady().then(() => {
     return db.prepare('SELECT * FROM productos ORDER BY categoria, nombre').all();
   });
 
-  ipcMain.handle('create-sale', (_, { items, total, pagos, notas, usuario_id }) => {
+  ipcMain.handle('create-sale', (_, { items, total, pagos, notas, usuario_id, usuario_nombre }) => {
     const crearVenta = db.transaction(() => {
       const montoPagado = pagos.reduce((s, p) => s + p.monto, 0);
       const saldoPendiente = Math.max(0, total - montoPagado);
       const estado = saldoPendiente > 0 ? 'pendiente' : 'completada';
 
       const result = db.prepare(
-        'INSERT INTO ventas (total, metodo_pago, notas, usuario_id, estado, saldo_pendiente) VALUES (?, ?, ?, ?, ?, ?)'
-      ).run(total, pagos.map(p => `${p.metodo}: $${p.monto}`).join('; '), notas || null, usuario_id || null, estado, saldoPendiente);
+        'INSERT INTO ventas (total, metodo_pago, notas, usuario_id, usuario_nombre, estado, saldo_pendiente) VALUES (?, ?, ?, ?, ?, ?, ?)'
+      ).run(total, pagos.map(p => `${p.metodo}: $${p.monto}`).join('; '), notas || null, usuario_id || null, usuario_nombre || null, estado, saldoPendiente);
 
       const ventaId = result.lastInsertRowid;
 
@@ -82,7 +100,8 @@ app.whenReady().then(() => {
   ipcMain.handle('get-sales', () => {
     return db.prepare(`
       SELECT v.id, v.fecha_hora, v.total, v.metodo_pago, v.notas,
-             COUNT(dv.id) as items_count, v.saldo_pendiente, v.fecha_cobro
+             COUNT(dv.id) as items_count, v.saldo_pendiente, v.fecha_cobro,
+             v.usuario_nombre
       FROM ventas v
       LEFT JOIN detalle_ventas dv ON dv.venta_id = v.id
       GROUP BY v.id
@@ -182,9 +201,17 @@ app.whenReady().then(() => {
     return res;
   });
 
-  ipcMain.handle('cobrar-pendiente', (_, venta_id) => {
-    db.prepare("UPDATE ventas SET estado = 'completada', saldo_pendiente = 0, fecha_cobro = datetime('now','localtime') WHERE id = ?").run(venta_id);
-    return { success: true };
+  ipcMain.handle('cobrar-pendiente', (_, { venta_id, monto, usuario_id, usuario_nombre }) => {
+    const venta = db.prepare('SELECT saldo_pendiente FROM ventas WHERE id = ?').get(venta_id);
+    if (!venta) return { success: false, error: 'Venta no encontrada' };
+
+    const nuevoSaldo = Math.max(0, venta.saldo_pendiente - monto);
+    const estado = nuevoSaldo <= 0 ? 'completada' : 'pendiente';
+    const fechaCobro = estado === 'completada' ? ", fecha_cobro = datetime('now','localtime')" : '';
+
+    db.prepare(`UPDATE ventas SET estado = ?, saldo_pendiente = ?${fechaCobro} WHERE id = ?`).run(estado, nuevoSaldo, venta_id);
+    db.prepare('INSERT INTO cobros (venta_id, monto, usuario_id, usuario_nombre) VALUES (?, ?, ?, ?)').run(venta_id, monto, usuario_id || null, usuario_nombre || null);
+    return { success: true, estado, nuevoSaldo };
   });
 
   ipcMain.handle('get-pendientes', () => {
@@ -207,6 +234,10 @@ app.whenReady().then(() => {
       WHERE dv.venta_id = ?
       ORDER BY dv.id
     `).all(saleId);
+  });
+
+  ipcMain.handle('get-cobros', (_, venta_id) => {
+    return db.prepare('SELECT id, monto, fecha, usuario_nombre FROM cobros WHERE venta_id = ? ORDER BY fecha ASC').all(venta_id);
   });
 
   app.on('activate', () => {

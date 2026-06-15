@@ -156,6 +156,10 @@ if (!columnasVentas.find(c => c.name === 'fecha_cobro')) {
     db.prepare("ALTER TABLE ventas ADD COLUMN fecha_cobro TEXT").run();
     console.log('Migración: columna fecha_cobro agregada a ventas.');
 }
+if (!columnasVentas.find(c => c.name === 'usuario_nombre')) {
+    db.prepare("ALTER TABLE ventas ADD COLUMN usuario_nombre TEXT").run();
+    console.log('Migración: columna usuario_nombre agregada a ventas.');
+}
 
 // Crear tablas si no existen
 db.prepare(`
@@ -178,6 +182,18 @@ db.prepare(`
         cantidad INTEGER NOT NULL,
         por_pago TEXT NOT NULL,
         FOREIGN KEY (usuario_id) REFERENCES usuarios(id)
+    )
+`).run();
+
+db.prepare(`
+    CREATE TABLE IF NOT EXISTS cobros (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        venta_id INTEGER NOT NULL,
+        monto REAL NOT NULL,
+        fecha TEXT DEFAULT (datetime('now','localtime')),
+        usuario_id INTEGER,
+        usuario_nombre TEXT,
+        FOREIGN KEY (venta_id) REFERENCES ventas(id) ON DELETE CASCADE
     )
 `).run();
 

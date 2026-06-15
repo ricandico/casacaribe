@@ -777,6 +777,7 @@
           pagos,
           notas: notas || null,
           usuario_id: usuarioActual.id,
+          usuario_nombre: usuarioActual.username,
         });
 
         let msg = `Venta #${result.ventaId} registrada — ${formatear(total)}`;
@@ -933,7 +934,7 @@
         const fecha = v.fecha_hora ? v.fecha_hora.replace('T', ' ').slice(0, 16) : '';
         const colorPago = v.metodo_pago === 'Efectivo' ? '#2d6a1e' : v.metodo_pago === 'Mercado Pago' ? '#1a6a9e' : '#8a6a00';
         return `
-          <div class="item-carrito" style="cursor:pointer" data-venta-id="${v.id}" data-fecha="${fecha}" data-total="${v.total}" data-pago="${v.metodo_pago}" data-notas="${v.notas || ''}" data-saldo="${v.saldo_pendiente || 0}" data-fecha-cobro="${v.fecha_cobro || ''}">
+          <div class="item-carrito" style="cursor:pointer" data-venta-id="${v.id}" data-fecha="${fecha}" data-total="${v.total}" data-pago="${v.metodo_pago}" data-notas="${v.notas || ''}" data-saldo="${v.saldo_pendiente || 0}" data-fecha-cobro="${v.fecha_cobro || ''}" data-usuario-nombre="${v.usuario_nombre || ''}">
             <div class="info">
               <div class="nombre-item">Venta #${v.id}</div>
               <div class="detalle-item">${fecha} · ${v.items_count} items</div>
@@ -956,14 +957,18 @@
 
           document.querySelectorAll('.detalle-venta').forEach(d => d.style.display = 'none');
 
-          if (!abierto) {
+            if (!abierto) {
             if (!detalleDiv.dataset.cargado) {
-              const items = await window.api.getSaleDetail(parseInt(id));
+              const [items, cobros] = await Promise.all([
+                window.api.getSaleDetail(parseInt(id)),
+                window.api.getCobros(parseInt(id))
+              ]);
               const fecha = row.dataset.fecha;
               const metodo = row.dataset.pago;
               const total = parseFloat(row.dataset.total);
               const saldo = parseFloat(row.dataset.saldo) || 0;
               const fecha_cobro = row.dataset.fechaCobro;
+              const usuario_nombre = row.dataset.usuarioNombre;
               const notas = row.dataset.notas;
               const colorPago = metodo === 'Efectivo' ? '#2d6a1e' : metodo === 'Mercado Pago' ? '#1a6a9e' : '#8a6a00';
               detalleDiv.innerHTML = `
@@ -988,6 +993,10 @@
                     <span style="color:#8a7a6a">Fecha</span>
                     <span>${fecha}</span>
                   </div>
+                  ${usuario_nombre ? `<div style="display:flex;justify-content:space-between">
+                    <span style="color:#8a7a6a">Vendedor</span>
+                    <span>${usuario_nombre}</span>
+                  </div>` : ''}
                   ${notas ? `<div style="display:flex;justify-content:space-between">
                     <span style="color:#8a7a6a">Notas</span>
                     <span>${notas}</span>
@@ -1000,7 +1009,18 @@
                     <span>Cobrada el</span>
                     <span>${fecha_cobro.replace('T', ' ').slice(0, 16)}</span>
                   </div>` : ''}
-                </div>`;
+                </div>
+                <div id="cobros-${id}" style="margin-top:6px"></div>`;
+              if (cobros.length) {
+                const cobrosEl = document.getElementById(`cobros-${id}`);
+                cobrosEl.innerHTML = '<div style="font-size:12px;color:#2d6a1e;font-weight:600;margin-bottom:4px">Cobros registrados</div>' +
+                  cobros.map(c =>
+                    `<div style="display:flex;justify-content:space-between;font-size:12px;padding:1px 0">
+                       <span>${c.fecha.replace('T',' ').slice(0,16)} — ${c.usuario_nombre || ''}</span>
+                       <span style="font-weight:500">${formatear(c.monto)}</span>
+                     </div>`
+                  ).join('');
+              }
               detalleDiv.dataset.cargado = '1';
             }
             detalleDiv.style.display = 'block';
@@ -1079,7 +1099,10 @@
                 </div>
                 <div style="text-align:right">
                   <div style="color:#b33a3a;font-weight:600;margin-bottom:4px">${formatear(v.saldo_pendiente)}</div>
-                  <button class="btn-cobrar" data-id="${v.id}" style="background:#2d6a1e;color:#fff;border:none;padding:4px 12px;border-radius:6px;cursor:pointer;font-size:12px;font-weight:500">Cobrar</button>
+                  <div style="display:flex;gap:4px;align-items:center">
+                    <input type="number" class="monto-cobro" data-id="${v.id}" value="${v.saldo_pendiente}" style="width:80px;padding:4px 6px;border:1px solid #ccc;border-radius:6px;font-size:12px;text-align:right">
+                    <button class="btn-cobrar" data-id="${v.id}" style="background:#2d6a1e;color:#fff;border:none;padding:4px 12px;border-radius:6px;cursor:pointer;font-size:12px;font-weight:500;white-space:nowrap">Cobrar</button>
+                  </div>
                 </div>
               </div>
             </div>`;
@@ -1087,8 +1110,11 @@
 
       contenedor.querySelectorAll('.btn-cobrar').forEach(btn => {
         btn.addEventListener('click', async () => {
-          await window.api.cobrarPendiente(parseInt(btn.dataset.id));
-          mostrarToast('Pendiente cobrado');
+          const ventaId = parseInt(btn.dataset.id);
+          const input = document.querySelector(`.monto-cobro[data-id="${ventaId}"]`);
+          const monto = input ? parseFloat(input.value) || 0 : 0;
+          await window.api.cobrarPendiente({ venta_id: ventaId, monto, usuario_id: usuarioActual.id, usuario_nombre: usuarioActual.username });
+          mostrarToast(monto > 0 ? `Cobro registrado: ${formatear(monto)}` : 'Pendiente cobrado');
           abrirPendientes();
           cargarTodayBar();
         });
