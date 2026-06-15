@@ -1051,14 +1051,28 @@
           const fecha = v.fecha_hora ? v.fecha_hora.replace('T', ' ').slice(0, 16) : '';
           return `
             <div style="padding:8px 0;border-bottom:1px solid #f0e8e0;font-size:13px">
-              <div style="display:flex;justify-content:space-between">
-                <span style="font-weight:500">Venta #${v.id}</span>
-                <span style="color:#b33a3a;font-weight:600">adeuda ${formatear(v.saldo_pendiente)}</span>
+              <div style="display:flex;justify-content:space-between;align-items:center">
+                <div>
+                  <div style="font-weight:500">Venta #${v.id}</div>
+                  <div style="color:#8a7a6a">${v.username} · ${fecha}</div>
+                  ${v.notas ? `<div style="color:#8a7a6a;font-size:12px">${v.notas}</div>` : ''}
+                </div>
+                <div style="text-align:right">
+                  <div style="color:#b33a3a;font-weight:600;margin-bottom:4px">${formatear(v.saldo_pendiente)}</div>
+                  <button class="btn-cobrar" data-id="${v.id}" style="background:#2d6a1e;color:#fff;border:none;padding:4px 12px;border-radius:6px;cursor:pointer;font-size:12px;font-weight:500">Cobrar</button>
+                </div>
               </div>
-              <div style="color:#8a7a6a">${v.username} · ${fecha}</div>
-              ${v.notas ? `<div style="color:#8a7a6a;font-size:12px">${v.notas}</div>` : ''}
             </div>`;
         }).join('')}`;
+
+      contenedor.querySelectorAll('.btn-cobrar').forEach(btn => {
+        btn.addEventListener('click', async () => {
+          await window.api.cobrarPendiente(parseInt(btn.dataset.id));
+          mostrarToast('Pendiente cobrado');
+          abrirPendientes();
+          cargarTodayBar();
+        });
+      });
 
       document.getElementById('modalPendientes').classList.add('mostrar');
     }

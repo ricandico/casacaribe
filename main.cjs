@@ -178,6 +178,11 @@ app.whenReady().then(() => {
     return res;
   });
 
+  ipcMain.handle('cobrar-pendiente', (_, venta_id) => {
+    db.prepare("UPDATE ventas SET estado = 'completada', saldo_pendiente = 0 WHERE id = ?").run(venta_id);
+    return { success: true };
+  });
+
   ipcMain.handle('get-pendientes', () => {
     return db.prepare(`
       SELECT v.id, v.fecha_hora, v.total, v.saldo_pendiente, v.notas,
