@@ -160,9 +160,10 @@ app.whenReady().then(() => {
   ipcMain.handle('get-today-total', (_, usuario_id) => {
     const hoy = new Date().toISOString().slice(0, 10);
     const res = db.prepare(`
-      SELECT COUNT(*) as cantidad, COALESCE(SUM(total), 0) as total
+      SELECT COUNT(*) as cantidad, COALESCE(SUM(total), 0) as total,
+             COALESCE(SUM(CASE WHEN cerrado = 0 THEN total ELSE 0 END), 0) as pendiente
       FROM ventas
-      WHERE usuario_id = ? AND DATE(fecha_hora) = ? AND cerrado = 0
+      WHERE usuario_id = ? AND DATE(fecha_hora) = ?
     `).get(usuario_id, hoy);
     return res;
   });
