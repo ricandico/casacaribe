@@ -374,6 +374,7 @@
       <button id="btn-stock" class="btn-admin" style="background:rgba(255,255,255,0.15);border:none;color:#fff;padding:8px 16px;border-radius:8px;cursor:pointer;font-size:14px;font-weight:500">📦 Stock</button>
       <button id="btn-usuarios" class="btn-admin" style="background:rgba(255,255,255,0.15);border:none;color:#fff;padding:8px 16px;border-radius:8px;cursor:pointer;font-size:14px;font-weight:500">👥 Usuarios</button>
       <button id="btn-historial-cierres" class="btn-admin" style="background:rgba(255,255,255,0.15);border:none;color:#fff;padding:8px 16px;border-radius:8px;cursor:pointer;font-size:14px;font-weight:500">📁 Cierres</button>
+      <button id="btn-pendientes" class="btn-admin" style="background:rgba(255,255,255,0.15);border:none;color:#fff;padding:8px 16px;border-radius:8px;cursor:pointer;font-size:14px;font-weight:500">📌 Pendientes</button>
       <div class="total-venta-header" id="totalHeader">$ 0,00</div>
       <div class="user-info">
         <div id="userNameDisplay"></div>
@@ -413,17 +414,30 @@
     </div>
   </div>
 
+  <style>
+    .pago-input { width:100%;padding:8px;border:1px solid #d4c4b3;border-radius:6px;font-size:14px;background:#faf7f4;text-align:right }
+    .pago-fila { display:flex;align-items:center;gap:8px;margin-bottom:6px }
+    .pago-fila label { min-width:110px;font-size:13px;font-weight:500;color:#5c3a1e }
+    #resumenPago { font-size:13px;line-height:1.8;padding:8px 0 }
+    #resumenPago .ok { color:#2d6a1e }
+    #resumenPago .error { color:#b33a3a }
+  </style>
+
   <div class="modal-overlay" id="modalPago">
-    <div class="modal">
+    <div class="modal" style="width:400px">
       <h2>Finalizar venta</h2>
-      <label for="metodoPago">Método de pago</label>
-      <select id="metodoPago">
-        <option value="Efectivo">Efectivo</option>
-        <option value="Mercado Pago">Mercado Pago</option>
-        <option value="Débito">Débito</option>
-      </select>
-      <label for="notas">Notas (opcional)</label>
-      <textarea id="notas" placeholder="Ej: cliente habitual…"></textarea>
+      <div style="font-size:18px;font-weight:700;color:#5c3a1e;text-align:center;margin-bottom:12px" id="modalPagoTotal"></div>
+
+      <div class="pago-fila"><label>Efectivo</label><input class="pago-input pago-metodo" id="pagoEfectivo" type="number" min="0" step="any" value="0"></div>
+      <div class="pago-fila"><label>Mercado Pago</label><input class="pago-input pago-metodo" id="pagoMp" type="number" min="0" step="any" value="0"></div>
+      <div class="pago-fila"><label>Débito</label><input class="pago-input pago-metodo" id="pagoDebito" type="number" min="0" step="any" value="0"></div>
+      <div class="pago-fila"><label>Fiado</label><input class="pago-input" id="pagoFiado" type="number" min="0" step="any" value="0" readonly style="background:#f0e8e0;color:#8a7a6a"></div>
+
+      <div id="resumenPago"></div>
+
+      <label for="notasPago">Notas (opcional)</label>
+      <textarea id="notasPago" placeholder="Ej: cliente paga a fin de mes…" style="width:100%;padding:8px;border:1px solid #d4c4b3;border-radius:6px;font-size:13px;background:#faf7f4;resize:vertical;min-height:50px;margin-bottom:8px"></textarea>
+
       <div class="modal-botones">
         <button class="btn-cancel" id="btnCancelarPago">Cancelar</button>
         <button class="btn-confirm" id="btnConfirmarPago">Confirmar pago</button>
@@ -460,6 +474,16 @@
       <div id="historialList"></div>
       <div class="modal-botones" style="margin-top:12px">
         <button class="btn-cancel" id="btnCerrarHistorial">Cerrar</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal-overlay" id="modalPendientes">
+    <div class="modal" style="width:520px;max-height:85vh;overflow-y:auto">
+      <h2>Cuentas Pendientes</h2>
+      <div id="pendientesList"></div>
+      <div class="modal-botones" style="margin-top:12px">
+        <button class="btn-cancel" id="btnCerrarPendientes">Cerrar</button>
       </div>
     </div>
   </div>
@@ -510,8 +534,13 @@
     const $totalHeader = document.getElementById('totalHeader');
     const $btnPagar = document.getElementById('btn-pagar');
     const $modalPago = document.getElementById('modalPago');
-    const $metodoPago = document.getElementById('metodoPago');
-    const $notas = document.getElementById('notas');
+    const $modalPagoTotal = document.getElementById('modalPagoTotal');
+    const $pagoEfectivo = document.getElementById('pagoEfectivo');
+    const $pagoMp = document.getElementById('pagoMp');
+    const $pagoDebito = document.getElementById('pagoDebito');
+    const $pagoFiado = document.getElementById('pagoFiado');
+    const $resumenPago = document.getElementById('resumenPago');
+    const $notasPago = document.getElementById('notasPago');
     const $btnCancelarPago = document.getElementById('btnCancelarPago');
     const $btnConfirmarPago = document.getElementById('btnConfirmarPago');
     const $toast = document.getElementById('toast');
@@ -666,7 +695,39 @@
 
     $buscador.addEventListener('input', cargarProductos);
 
+    function actualizarResumenPago() {
+      const totalCarrito = carrito.reduce((t, i) => t + i.subtotal, 0);
+      const ef = parseFloat($pagoEfectivo.value) || 0;
+      const mp = parseFloat($pagoMp.value) || 0;
+      const deb = parseFloat($pagoDebito.value) || 0;
+      const pagado = ef + mp + deb;
+      const fiado = Math.max(0, totalCarrito - pagado);
+
+      $pagoFiado.value = fiado.toFixed(2);
+      $modalPagoTotal.textContent = formatear(totalCarrito);
+
+      if (fiado > 0) {
+        $resumenPago.innerHTML = `
+          <div class="${pagado >= totalCarrito ? 'ok' : 'error'}">
+            Pagado: ${formatear(pagado)}${pagado >= totalCarrito ? ' ✅' : ''}<br>
+            <strong>Fiado: ${formatear(fiado)}</strong>
+          </div>`;
+      } else {
+        $resumenPago.innerHTML = `<div class="ok">✅ Pago completo</div>`;
+      }
+    }
+
+    document.querySelectorAll('.pago-metodo').forEach(input => {
+      input.addEventListener('input', actualizarResumenPago);
+    });
+
     $btnPagar.addEventListener('click', () => {
+      const total = carrito.reduce((t, i) => t + i.subtotal, 0);
+      $pagoEfectivo.value = total.toFixed(2);
+      $pagoMp.value = '0';
+      $pagoDebito.value = '0';
+      $notasPago.value = '';
+      actualizarResumenPago();
       $modalPago.classList.add('mostrar');
     });
 
@@ -675,9 +736,22 @@
     });
 
     $btnConfirmarPago.addEventListener('click', async () => {
-      const metodo = $metodoPago.value;
-      const notas = $notas.value.trim();
       const total = carrito.reduce((t, i) => t + i.subtotal, 0);
+      const ef = parseFloat($pagoEfectivo.value) || 0;
+      const mp = parseFloat($pagoMp.value) || 0;
+      const deb = parseFloat($pagoDebito.value) || 0;
+      const notas = $notasPago.value.trim();
+
+      const pagos = [];
+      if (ef > 0) pagos.push({ metodo: 'Efectivo', monto: ef });
+      if (mp > 0) pagos.push({ metodo: 'Mercado Pago', monto: mp });
+      if (deb > 0) pagos.push({ metodo: 'Débito', monto: deb });
+
+      const montoPagado = pagos.reduce((s, p) => s + p.monto, 0);
+      if (montoPagado > total) {
+        mostrarToast('El pago no puede superar el total');
+        return;
+      }
 
       try {
         const result = await window.api.createSale({
@@ -688,16 +762,20 @@
             subtotal: i.subtotal,
           })),
           total,
-          metodo_pago: metodo,
+          pagos,
           notas: notas || null,
           usuario_id: usuarioActual.id,
         });
 
-        mostrarToast(`Venta #${result.ventaId} registrada — ${formatear(total)}`);
+        const fiado = total - montoPagado;
+        const msg = fiado > 0
+          ? `Venta #${result.ventaId} — fiado $${fiado.toFixed(2)}`
+          : `Venta #${result.ventaId} registrada — ${formatear(total)}`;
+
+        mostrarToast(msg);
         carrito.length = 0;
         renderCarrito();
         $modalPago.classList.remove('mostrar');
-        $notas.value = '';
         cargarProductos();
         cargarTodayBar();
       } catch (err) {
@@ -952,6 +1030,49 @@
       }
     });
 
+    async function abrirPendientes() {
+      const pendientes = await window.api.getPendientes();
+      const contenedor = document.getElementById('pendientesList');
+
+      if (pendientes.length === 0) {
+        contenedor.innerHTML = '<div style="text-align:center;color:#8a7a6a;padding:20px">No hay cuentas pendientes</div>';
+        document.getElementById('modalPendientes').classList.add('mostrar');
+        return;
+      }
+
+      const totalPendiente = pendientes.reduce((s, v) => s + v.saldo_pendiente, 0);
+
+      contenedor.innerHTML = `
+        <div style="display:flex;justify-content:space-between;background:#fde0e0;border-radius:10px;padding:12px 16px;margin-bottom:12px;font-size:16px;font-weight:700;color:#b33a3a">
+          <span>Total pendiente</span>
+          <span>${formatear(totalPendiente)}</span>
+        </div>
+        ${pendientes.map(v => {
+          const fecha = v.fecha_hora ? v.fecha_hora.replace('T', ' ').slice(0, 16) : '';
+          return `
+            <div style="padding:8px 0;border-bottom:1px solid #f0e8e0;font-size:13px">
+              <div style="display:flex;justify-content:space-between">
+                <span style="font-weight:500">Venta #${v.id}</span>
+                <span style="color:#b33a3a;font-weight:600">adeuda ${formatear(v.saldo_pendiente)}</span>
+              </div>
+              <div style="color:#8a7a6a">${v.username} · ${fecha}</div>
+              ${v.notas ? `<div style="color:#8a7a6a;font-size:12px">${v.notas}</div>` : ''}
+            </div>`;
+        }).join('')}`;
+
+      document.getElementById('modalPendientes').classList.add('mostrar');
+    }
+
+    document.getElementById('btn-pendientes').addEventListener('click', abrirPendientes);
+    document.getElementById('btnCerrarPendientes').addEventListener('click', () => {
+      document.getElementById('modalPendientes').classList.remove('mostrar');
+    });
+    document.getElementById('modalPendientes').addEventListener('click', (e) => {
+      if (e.target === document.getElementById('modalPendientes')) {
+        document.getElementById('modalPendientes').classList.remove('mostrar');
+      }
+    });
+
     document.getElementById('btn-historial').addEventListener('click', abrirHistorial);
     document.getElementById('btnCerrarHistorial').addEventListener('click', () => {
       document.getElementById('modalHistorial').classList.remove('mostrar');
@@ -1100,14 +1221,11 @@
       const data = await window.api.getTodayTotal(usuarioActual.id);
       document.getElementById('todayTotal').textContent = formatear(data.total);
       document.getElementById('todayCount').textContent = `${data.cantidad} venta${data.cantidad !== 1 ? 's' : ''}`;
-      const pendEl = document.getElementById('todayPendiente');
-      if (data.pendiente > 0) {
-        pendEl.textContent = `🔴 ${formatear(data.pendiente)} sin cerrar`;
-      } else if (data.cantidad > 0) {
-        pendEl.textContent = '✅ turno cerrado';
-      } else {
-        pendEl.textContent = '';
-      }
+      let partes = [];
+      if (data.pendiente > 0) partes.push(`🔴 ${formatear(data.pendiente)} sin cerrar`);
+      if (data.saldo_pendiente > 0) partes.push(`📌 ${formatear(data.saldo_pendiente)} fiado`);
+      if (data.cantidad > 0 && data.pendiente === 0 && data.saldo_pendiente === 0) partes.push('✅ turno cerrado');
+      document.getElementById('todayPendiente').textContent = partes.join(' · ');
     }
 
     async function initApp() {

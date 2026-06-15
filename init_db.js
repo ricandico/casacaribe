@@ -144,8 +144,26 @@ if (!columnasVentas.find(c => c.name === 'cerrado')) {
     db.prepare("ALTER TABLE ventas ADD COLUMN cerrado INTEGER DEFAULT 0").run();
     console.log('Migración: columna cerrado agregada a ventas.');
 }
+if (!columnasVentas.find(c => c.name === 'estado')) {
+    db.prepare("ALTER TABLE ventas ADD COLUMN estado TEXT DEFAULT 'completada'").run();
+    console.log('Migración: columna estado agregada a ventas.');
+}
+if (!columnasVentas.find(c => c.name === 'saldo_pendiente')) {
+    db.prepare("ALTER TABLE ventas ADD COLUMN saldo_pendiente REAL DEFAULT 0").run();
+    console.log('Migración: columna saldo_pendiente agregada a ventas.');
+}
 
-// Crear tabla cierres si no existe
+// Crear tablas si no existen
+db.prepare(`
+    CREATE TABLE IF NOT EXISTS pagos (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        venta_id INTEGER NOT NULL,
+        metodo TEXT NOT NULL,
+        monto REAL NOT NULL,
+        FOREIGN KEY (venta_id) REFERENCES ventas(id) ON DELETE CASCADE
+    )
+`).run();
+
 db.prepare(`
     CREATE TABLE IF NOT EXISTS cierres (
         id INTEGER PRIMARY KEY AUTOINCREMENT,

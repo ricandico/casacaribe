@@ -39,13 +39,22 @@ app.whenReady().then(() => {
     return db.prepare('SELECT * FROM productos ORDER BY categoria, nombre').all();
   });
 
-  ipcMain.handle('create-sale', (_, { items, total, metodo_pago, notas, usuario_id }) => {
+  ipcMain.handle('create-sale', (_, { items, total, pagos, notas, usuario_id }) => {
     const crearVenta = db.transaction(() => {
+      const montoPagado = pagos.reduce((s, p) => s + p.monto, 0);
+      const saldoPendiente = Math.max(0, total - montoPagado);
+      const estado = saldoPendiente > 0 ? 'pendiente' : 'completada';
+
       const result = db.prepare(
-        'INSERT INTO ventas (total, metodo_pago, notas, usuario_id) VALUES (?, ?, ?, ?)'
-      ).run(total, metodo_pago, notas || null, usuario_id || null);
+        'INSERT INTO ventas (total, metodo_pago, notas, usuario_id, estado, saldo_pendiente) VALUES (?, ?, ?, ?, ?, ?)'
+      ).run(total, pagos.map(p => `${p.metodo}: $${p.monto}`).join('; '), notas || null, usuario_id || null, estado, saldoPendiente);
 
       const ventaId = result.lastInsertRowid;
+
+      const insertPago = db.prepare('INSERT INTO pagos (venta_id, metodo, monto) VALUES (?, ?, ?)');
+      for (const p of pagos) {
+        insertPago.run(ventaId, p.metodo, p.monto);
+      }
       const insertDetail = db.prepare(
         'INSERT INTO detalle_ventas (venta_id, producto_id, cantidad, precio_unitario, subtotal) VALUES (?, ?, ?, ?, ?)'
       );
@@ -161,11 +170,23 @@ app.whenReady().then(() => {
     const hoy = new Date().toISOString().slice(0, 10);
     const res = db.prepare(`
       SELECT COUNT(*) as cantidad, COALESCE(SUM(total), 0) as total,
-             COALESCE(SUM(CASE WHEN cerrado = 0 THEN total ELSE 0 END), 0) as pendiente
+             COALESCE(SUM(CASE WHEN cerrado = 0 THEN total ELSE 0 END), 0) as pendiente,
+             COALESCE(SUM(saldo_pendiente), 0) as saldo_pendiente
       FROM ventas
       WHERE usuario_id = ? AND DATE(fecha_hora) = ?
     `).get(usuario_id, hoy);
     return res;
+  });
+
+  ipcMain.handle('get-pendientes', () => {
+    return db.prepare(`
+      SELECT v.id, v.fecha_hora, v.total, v.saldo_pendiente, v.notas,
+             u.username
+      FROM ventas v
+      JOIN usuarios u ON u.id = v.usuario_id
+      WHERE v.estado = 'pendiente'
+      ORDER BY v.fecha_hora DESC
+    `).all();
   });
 
   ipcMain.handle('get-sale-detail', (_, saleId) => {
