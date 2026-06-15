@@ -743,7 +743,7 @@
         const fecha = v.fecha_hora ? v.fecha_hora.replace('T', ' ').slice(0, 16) : '';
         const colorPago = v.metodo_pago === 'Efectivo' ? '#2d6a1e' : v.metodo_pago === 'Mercado Pago' ? '#1a6a9e' : '#8a6a00';
         return `
-          <div class="item-carrito" style="cursor:pointer" data-venta-id="${v.id}">
+          <div class="item-carrito" style="cursor:pointer" data-venta-id="${v.id}" data-fecha="${fecha}" data-total="${v.total}" data-pago="${v.metodo_pago}" data-notas="${v.notas || ''}">
             <div class="info">
               <div class="nombre-item">Venta #${v.id}</div>
               <div class="detalle-item">${fecha} · ${v.items_count} items</div>
@@ -754,7 +754,7 @@
               <div style="font-size:11px;color:${colorPago};font-weight:500">${v.metodo_pago}</div>
             </div>
           </div>
-          <div class="detalle-venta" id="detalle-${v.id}" style="display:none;padding:4px 16px 8px;background:#faf7f4;border-radius:0 0 10px 10px"></div>`;
+          <div class="detalle-venta" id="detalle-${v.id}" style="display:none;padding:8px 16px 12px;background:#faf7f4;border-radius:0 0 10px 10px"></div>`;
       }).join('');
 
       contenedor.querySelectorAll('.item-carrito[data-venta-id]').forEach(row => {
@@ -768,12 +768,38 @@
           if (!abierto) {
             if (!detalleDiv.dataset.cargado) {
               const items = await window.api.getSaleDetail(parseInt(id));
-              detalleDiv.innerHTML = items.map(i =>
-                `<div style="display:flex;justify-content:space-between;font-size:13px;padding:2px 0">
-                   <span>${i.nombre} ${i.variante} × ${i.cantidad}</span>
-                   <span style="font-weight:500">${formatear(i.subtotal)}</span>
-                 </div>`
-              ).join('');
+              const fecha = row.dataset.fecha;
+              const metodo = row.dataset.pago;
+              const total = parseFloat(row.dataset.total);
+              const notas = row.dataset.notas;
+              const colorPago = metodo === 'Efectivo' ? '#2d6a1e' : metodo === 'Mercado Pago' ? '#1a6a9e' : '#8a6a00';
+              detalleDiv.innerHTML = `
+                <div style="border-bottom:1px solid #e0d6ca;padding-bottom:6px;margin-bottom:6px">
+                  ${items.map(i =>
+                    `<div style="display:flex;justify-content:space-between;font-size:13px;padding:2px 0">
+                       <span>${i.nombre} ${i.variante} × ${i.cantidad}</span>
+                       <span style="font-weight:500">${formatear(i.subtotal)}</span>
+                     </div>`
+                  ).join('')}
+                </div>
+                <div style="font-size:13px;line-height:1.6">
+                  <div style="display:flex;justify-content:space-between;font-weight:600">
+                    <span>Total</span>
+                    <span>${formatear(total)}</span>
+                  </div>
+                  <div style="display:flex;justify-content:space-between">
+                    <span style="color:#8a7a6a">Método de pago</span>
+                    <span style="color:${colorPago};font-weight:500">${metodo}</span>
+                  </div>
+                  <div style="display:flex;justify-content:space-between">
+                    <span style="color:#8a7a6a">Fecha</span>
+                    <span>${fecha}</span>
+                  </div>
+                  ${notas ? `<div style="display:flex;justify-content:space-between">
+                    <span style="color:#8a7a6a">Notas</span>
+                    <span>${notas}</span>
+                  </div>` : ''}
+                </div>`;
               detalleDiv.dataset.cargado = '1';
             }
             detalleDiv.style.display = 'block';
