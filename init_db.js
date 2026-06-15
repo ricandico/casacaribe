@@ -43,6 +43,16 @@ const inicializarTablas = db.transaction(() => {
             FOREIGN KEY (producto_id) REFERENCES productos(id)
         )
     `).run();
+
+    // Tabla de Usuarios
+    db.prepare(`
+        CREATE TABLE IF NOT EXISTS usuarios (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            username TEXT NOT NULL UNIQUE,
+            password TEXT NOT NULL,
+            rol TEXT NOT NULL DEFAULT 'vendedor' -- admin | vendedor
+        )
+    `).run();
 });
 
 // Ejecutar la creación de tablas
@@ -107,6 +117,21 @@ if (totalProductos.count === 0) {
     console.log(`¡Éxito! Se cargaron ${catalogoInicial.length} productos iniciales.`);
 } else {
     console.log("La base de datos ya contiene productos cargados. Saltando inicialización del catálogo.");
+}
+
+// 3. POBLAR USUARIOS POR DEFECTO
+const totalUsuarios = db.prepare('SELECT COUNT(*) as count FROM usuarios').get();
+
+if (totalUsuarios.count === 0) {
+    const insertUser = db.prepare('INSERT INTO usuarios (username, password, rol) VALUES (?, ?, ?)');
+    const poblarUsuarios = db.transaction(() => {
+        insertUser.run('admin', 'admin', 'admin');
+        insertUser.run('vendedor', 'vendedor', 'vendedor');
+    });
+    poblarUsuarios();
+    console.log('Usuarios creados: admin/admin y vendedor/vendedor');
+} else {
+    console.log('Los usuarios ya existen. Saltando.');
 }
 
 // Cerramos la conexión

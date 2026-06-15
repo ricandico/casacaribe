@@ -3,7 +3,7 @@
   "main": "main.cjs",
   "scripts": {
     "start": "electron .",
-    "init-db": "node init_db.js",
+    "init-db": "pnpm rebuild better-sqlite3 && node init_db.js && npx electron-rebuild -f -w better-sqlite3",
     "postinstall": "electron-rebuild -f -w better-sqlite3"
   },
   "devDependencies": {

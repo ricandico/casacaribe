@@ -81,6 +81,13 @@ app.whenReady().then(() => {
     `).all();
   });
 
+  ipcMain.handle('login', (_, { username, password }) => {
+    const user = db.prepare(
+      'SELECT id, username, rol FROM usuarios WHERE username = ? AND password = ?'
+    ).get(username, password);
+    return user || null;
+  });
+
   ipcMain.handle('get-sale-detail', (_, saleId) => {
     return db.prepare(`
       SELECT dv.cantidad, dv.precio_unitario, dv.subtotal,
