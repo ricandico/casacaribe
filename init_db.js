@@ -134,5 +134,13 @@ if (totalUsuarios.count === 0) {
     console.log('Los usuarios ya existen. Saltando.');
 }
 
+// 4. MIGRACIONES (para tablas que ya existen)
+// Agregar usuario_id a ventas si no existe
+const columnasVentas = db.prepare("PRAGMA table_info(ventas)").all();
+if (!columnasVentas.find(c => c.name === 'usuario_id')) {
+    db.prepare("ALTER TABLE ventas ADD COLUMN usuario_id INTEGER REFERENCES usuarios(id)").run();
+    console.log('Migración: columna usuario_id agregada a ventas.');
+}
+
 // Cerramos la conexión
 db.close();

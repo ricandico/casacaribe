@@ -39,11 +39,11 @@ app.whenReady().then(() => {
     return db.prepare('SELECT * FROM productos ORDER BY categoria, nombre').all();
   });
 
-  ipcMain.handle('create-sale', (_, { items, total, metodo_pago, notas }) => {
+  ipcMain.handle('create-sale', (_, { items, total, metodo_pago, notas, usuario_id }) => {
     const crearVenta = db.transaction(() => {
       const result = db.prepare(
-        'INSERT INTO ventas (total, metodo_pago, notas) VALUES (?, ?, ?)'
-      ).run(total, metodo_pago, notas || null);
+        'INSERT INTO ventas (total, metodo_pago, notas, usuario_id) VALUES (?, ?, ?, ?)'
+      ).run(total, metodo_pago, notas || null, usuario_id || null);
 
       const ventaId = result.lastInsertRowid;
       const insertDetail = db.prepare(
@@ -105,6 +105,29 @@ app.whenReady().then(() => {
   ipcMain.handle('delete-user', (_, userId) => {
     db.prepare('DELETE FROM usuarios WHERE id = ?').run(userId);
     return { success: true };
+  });
+
+  ipcMain.handle('get-cierre', (_, { usuario_id }) => {
+    const hoy = new Date().toISOString().slice(0, 10);
+    const ventas = db.prepare(`
+      SELECT v.id, v.fecha_hora, v.total, v.metodo_pago, v.notas,
+             COUNT(dv.id) as items_count
+      FROM ventas v
+      LEFT JOIN detalle_ventas dv ON dv.venta_id = v.id
+      WHERE v.usuario_id = ? AND DATE(v.fecha_hora) = ?
+      GROUP BY v.id
+      ORDER BY v.id
+    `).all(usuario_id, hoy);
+
+    const total = ventas.reduce((s, v) => s + v.total, 0);
+    const porPago = {};
+    for (const v of ventas) {
+      porPago[v.metodo_pago] = (porPago[v.metodo_pago] || 0) + v.total;
+    }
+
+    const usuario = db.prepare('SELECT username FROM usuarios WHERE id = ?').get(usuario_id);
+
+    return { ventas, total, cantidad: ventas.length, porPago, usuario: usuario?.username || '' };
   });
 
   ipcMain.handle('get-sale-detail', (_, saleId) => {
