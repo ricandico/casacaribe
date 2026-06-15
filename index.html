@@ -371,6 +371,7 @@
     <div style="display:flex;align-items:center;gap:12px">
       <button id="btn-historial" class="btn-admin" style="background:rgba(255,255,255,0.15);border:none;color:#fff;padding:8px 16px;border-radius:8px;cursor:pointer;font-size:14px;font-weight:500">📋 Historial</button>
       <button id="btn-stock" class="btn-admin" style="background:rgba(255,255,255,0.15);border:none;color:#fff;padding:8px 16px;border-radius:8px;cursor:pointer;font-size:14px;font-weight:500">📦 Stock</button>
+      <button id="btn-usuarios" class="btn-admin" style="background:rgba(255,255,255,0.15);border:none;color:#fff;padding:8px 16px;border-radius:8px;cursor:pointer;font-size:14px;font-weight:500">👥 Usuarios</button>
       <div class="total-venta-header" id="totalHeader">$ 0,00</div>
       <div class="user-info">
         <div id="userNameDisplay"></div>
@@ -416,6 +417,29 @@
       <div class="modal-botones">
         <button class="btn-cancel" id="btnCancelarPago">Cancelar</button>
         <button class="btn-confirm" id="btnConfirmarPago">Confirmar pago</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal-overlay" id="modalUsuarios">
+    <div class="modal" style="width:440px;max-height:85vh;overflow-y:auto">
+      <h2>Gestión de Usuarios</h2>
+      <div style="margin-bottom:16px;padding-bottom:16px;border-bottom:1px solid #e0d6ca">
+        <label>Nuevo usuario</label>
+        <div style="display:flex;gap:8px;flex-wrap:wrap">
+          <input id="newUserName" placeholder="Usuario" style="flex:1;min-width:100px;padding:8px;border:1px solid #d4c4b3;border-radius:6px;font-size:13px;background:#faf7f4">
+          <input id="newUserPass" type="password" placeholder="Contraseña" style="flex:1;min-width:100px;padding:8px;border:1px solid #d4c4b3;border-radius:6px;font-size:13px;background:#faf7f4">
+          <select id="newUserRol" style="padding:8px;border:1px solid #d4c4b3;border-radius:6px;font-size:13px;background:#faf7f4">
+            <option value="vendedor">Vendedor</option>
+            <option value="admin">Admin</option>
+          </select>
+          <button id="btn-add-user" style="background:#5c3a1e;color:#fff;border:none;padding:8px 16px;border-radius:6px;cursor:pointer;font-weight:600;font-size:13px">Agregar</button>
+        </div>
+        <div id="userError" style="color:#b33a3a;font-size:12px;margin-top:4px"></div>
+      </div>
+      <div id="usersList"></div>
+      <div class="modal-botones" style="margin-top:12px">
+        <button class="btn-cancel" id="btnCerrarUsuarios">Cerrar</button>
       </div>
     </div>
   </div>
@@ -772,6 +796,67 @@
     });
 
     let usuarioActual = null;
+
+    async function abrirUsuarios() {
+      const users = await window.api.getUsers();
+      const contenedor = document.getElementById('usersList');
+
+      contenedor.innerHTML = users.map(u => {
+        const esYo = usuarioActual && u.id === usuarioActual.id;
+        return `
+          <div class="item-carrito">
+            <div class="info">
+              <div class="nombre-item">${u.username} ${esYo ? '<span style="color:#8a7a6a;font-size:11px">(vos)</span>' : ''}</div>
+              <div class="detalle-item">${u.rol === 'admin' ? 'Administrador' : 'Vendedor'}</div>
+            </div>
+            ${esYo ? '' : `<button class="btn-del-user" data-id="${u.id}" style="background:#fde0e0;border:none;color:#b33a3a;padding:6px 12px;border-radius:6px;cursor:pointer;font-size:12px;font-weight:500">Eliminar</button>`}
+          </div>`;
+      }).join('');
+
+      contenedor.querySelectorAll('.btn-del-user').forEach(btn => {
+        btn.addEventListener('click', async () => {
+          if (confirm('¿Eliminar este usuario?')) {
+            await window.api.deleteUser(parseInt(btn.dataset.id));
+            abrirUsuarios();
+          }
+        });
+      });
+
+      document.getElementById('modalUsuarios').classList.add('mostrar');
+    }
+
+    document.getElementById('btn-usuarios').addEventListener('click', abrirUsuarios);
+    document.getElementById('btnCerrarUsuarios').addEventListener('click', () => {
+      document.getElementById('modalUsuarios').classList.remove('mostrar');
+    });
+
+    document.getElementById('modalUsuarios').addEventListener('click', (e) => {
+      if (e.target === document.getElementById('modalUsuarios')) {
+        document.getElementById('modalUsuarios').classList.remove('mostrar');
+      }
+    });
+
+    document.getElementById('btn-add-user').addEventListener('click', async () => {
+      const username = document.getElementById('newUserName').value.trim();
+      const password = document.getElementById('newUserPass').value.trim();
+      const rol = document.getElementById('newUserRol').value;
+      const errorEl = document.getElementById('userError');
+
+      if (!username || !password) {
+        errorEl.textContent = 'Completá usuario y contraseña';
+        return;
+      }
+
+      const result = await window.api.createUser({ username, password, rol });
+      if (result.success) {
+        document.getElementById('newUserName').value = '';
+        document.getElementById('newUserPass').value = '';
+        errorEl.textContent = '';
+        abrirUsuarios();
+      } else {
+        errorEl.textContent = result.error || 'Error al crear usuario';
+      }
+    });
 
     document.getElementById('btn-stock').addEventListener('click', abrirStock);
     document.getElementById('btnCerrarStock').addEventListener('click', async () => {

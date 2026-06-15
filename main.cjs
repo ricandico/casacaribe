@@ -88,6 +88,25 @@ app.whenReady().then(() => {
     return user || null;
   });
 
+  ipcMain.handle('get-users', () => {
+    return db.prepare('SELECT id, username, rol FROM usuarios ORDER BY id').all();
+  });
+
+  ipcMain.handle('create-user', (_, { username, password, rol }) => {
+    try {
+      db.prepare('INSERT INTO usuarios (username, password, rol) VALUES (?, ?, ?)').run(username, password, rol);
+      return { success: true };
+    } catch (err) {
+      if (err.message.includes('UNIQUE')) return { success: false, error: 'El usuario ya existe' };
+      return { success: false, error: err.message };
+    }
+  });
+
+  ipcMain.handle('delete-user', (_, userId) => {
+    db.prepare('DELETE FROM usuarios WHERE id = ?').run(userId);
+    return { success: true };
+  });
+
   ipcMain.handle('get-sale-detail', (_, saleId) => {
     return db.prepare(`
       SELECT dv.cantidad, dv.precio_unitario, dv.subtotal,
