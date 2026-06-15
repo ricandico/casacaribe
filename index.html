@@ -759,7 +759,7 @@
 
       contenedor.querySelectorAll('.item-carrito[data-venta-id]').forEach(row => {
         row.addEventListener('click', async () => {
-          const id = row.dataset.venta_id;
+          const id = row.dataset.ventaId;
           const detalleDiv = document.getElementById(`detalle-${id}`);
           const abierto = detalleDiv.style.display === 'block';
 
