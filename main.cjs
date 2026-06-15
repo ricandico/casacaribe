@@ -35,6 +35,10 @@ app.whenReady().then(() => {
     return db.prepare('SELECT * FROM productos WHERE categoria = ? ORDER BY nombre').all(category);
   });
 
+  ipcMain.handle('get-all-products', () => {
+    return db.prepare('SELECT * FROM productos ORDER BY categoria, nombre').all();
+  });
+
   ipcMain.handle('create-sale', (_, { items, total, metodo_pago, notas }) => {
     const crearVenta = db.transaction(() => {
       const result = db.prepare(
@@ -46,14 +50,24 @@ app.whenReady().then(() => {
         'INSERT INTO detalle_ventas (venta_id, producto_id, cantidad, precio_unitario, subtotal) VALUES (?, ?, ?, ?, ?)'
       );
 
+      const descontarStock = db.prepare(
+        'UPDATE productos SET stock_actual = stock_actual - ? WHERE id = ?'
+      );
+
       for (const item of items) {
         insertDetail.run(ventaId, item.producto_id, item.cantidad, item.precio_unitario, item.subtotal);
+        descontarStock.run(item.cantidad, item.producto_id);
       }
 
       return { ventaId };
     });
 
     return crearVenta();
+  });
+
+  ipcMain.handle('update-stock', (_, { producto_id, stock_actual }) => {
+    db.prepare('UPDATE productos SET stock_actual = ? WHERE id = ?').run(stock_actual, producto_id);
+    return { success: true };
   });
 
   app.on('activate', () => {

@@ -93,6 +93,19 @@
     .producto-card .nombre { font-weight: 600; font-size: 15px; color: #2d2a24; }
     .producto-card .variante { font-size: 12px; color: #8a7a6a; margin-top: 2px; }
     .producto-card .precio { font-size: 18px; font-weight: 700; color: #5c3a1e; margin-top: 8px; }
+    .producto-card .stock-badge {
+      font-size: 11px;
+      font-weight: 600;
+      margin-top: 6px;
+      padding: 2px 8px;
+      border-radius: 10px;
+      display: inline-block;
+      align-self: flex-start;
+    }
+    .stock-bien { background: #e4f0e0; color: #2d6a1e; }
+    .stock-medio { background: #fef3d0; color: #8a6a00; }
+    .stock-mal { background: #fde0e0; color: #b33a3a; }
+    .stock-cero { background: #f0e8e0; color: #8a7a6a; }
 
     .panel-carrito {
       width: 340px;
@@ -266,7 +279,10 @@
 <body>
   <header>
     <h1>Casa Caribe — Panadería</h1>
-    <div class="total-venta-header" id="totalHeader">Bs. 0,00</div>
+    <div style="display:flex;align-items:center;gap:12px">
+      <button id="btn-stock" style="background:rgba(255,255,255,0.15);border:none;color:#fff;padding:8px 16px;border-radius:8px;cursor:pointer;font-size:14px;font-weight:500">📦 Stock</button>
+      <div class="total-venta-header" id="totalHeader">Bs. 0,00</div>
+    </div>
   </header>
 
   <div class="layout">
@@ -305,6 +321,16 @@
       <div class="modal-botones">
         <button class="btn-cancel" id="btnCancelarPago">Cancelar</button>
         <button class="btn-confirm" id="btnConfirmarPago">Confirmar pago</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal-overlay" id="modalStock">
+    <div class="modal" style="width:500px;max-height:80vh;overflow-y:auto">
+      <h2>Control de Stock</h2>
+      <div id="stockList"></div>
+      <div class="modal-botones" style="margin-top:12px">
+        <button class="btn-cancel" id="btnCerrarStock">Cerrar</button>
       </div>
     </div>
   </div>
@@ -368,13 +394,21 @@
         p.nombre.toLowerCase().includes(filtro) || p.variante.toLowerCase().includes(filtro)
       );
 
-      $grid.innerHTML = filtrados.map(p => `
-        <div class="producto-card" data-id="${p.id}" data-nombre="${p.nombre}" data-variante="${p.variante}" data-precio="${p.precio_venta}">
+      $grid.innerHTML = filtrados.map(p => {
+        const stock = p.stock_actual;
+        let stockCls = 'stock-bien';
+        if (stock === 0) stockCls = 'stock-cero';
+        else if (stock <= 3) stockCls = 'stock-mal';
+        else if (stock <= 10) stockCls = 'stock-medio';
+        const stockTxt = stock === 0 ? 'Sin stock' : `${stock} uds`;
+        return `
+        <div class="producto-card" data-id="${p.id}" data-nombre="${p.nombre}" data-variante="${p.variante}" data-precio="${p.precio_venta}" data-stock="${stock}">
           <div class="nombre">${p.nombre}</div>
           <div class="variante">${p.variante}</div>
           <div class="precio">${formatear(p.precio_venta)}</div>
-        </div>
-      `).join('');
+          <div class="stock-badge ${stockCls}">${stockTxt}</div>
+        </div>`;
+      }).join('');
 
       $grid.querySelectorAll('.producto-card').forEach(card => {
         card.addEventListener('click', () => {
@@ -389,6 +423,15 @@
 
     function agregarAlCarrito(id, nombre, variante, precio) {
       const existente = carrito.find(i => i.producto_id === id);
+      const enCarrito = existente ? existente.cantidad : 0;
+      const card = document.querySelector(`.producto-card[data-id="${id}"]`);
+      const stockDisponible = card ? parseInt(card.dataset.stock) : 0;
+
+      if (enCarrito >= stockDisponible) {
+        mostrarToast('Stock insuficiente');
+        return;
+      }
+
       if (existente) {
         existente.cantidad += 1;
         existente.subtotal = existente.cantidad * existente.precio_unitario;
@@ -420,20 +463,25 @@
         return;
       }
 
-      $listaCarrito.innerHTML = carrito.map(item => `
+      $listaCarrito.innerHTML = carrito.map(item => {
+        const card = document.querySelector(`.producto-card[data-id="${item.producto_id}"]`);
+        const stockRestante = card ? parseInt(card.dataset.stock) - item.cantidad : 0;
+        const stockOk = stockRestante >= 0;
+        return `
         <div class="item-carrito">
           <div class="info">
             <div class="nombre-item">${item.nombre}</div>
             <div class="detalle-item">${item.variante} · ${formatear(item.precio_unitario)} c/u</div>
+            <div style="font-size:11px;color:${stockOk ? '#8a7a6a' : '#b33a3a'};margin-top:2px">${stockOk ? `queda ${stockRestante} uds` : 'stock insuficiente'}</div>
           </div>
           <div class="acciones">
             <button class="btn-restar" data-id="${item.producto_id}">−</button>
             <span class="cantidad">${item.cantidad}</span>
-            <button class="btn-sumar" data-id="${item.producto_id}">+</button>
+            <button class="btn-sumar" data-id="${item.producto_id}" ${!stockOk ? 'style="opacity:0.4;pointer-events:none"' : ''}>+</button>
           </div>
           <div class="subtotal-item">${formatear(item.subtotal)}</div>
-        </div>
-      `).join('');
+        </div>`;
+      }).join('');
 
       $listaCarrito.querySelectorAll('.btn-restar').forEach(btn => {
         btn.addEventListener('click', () => eliminarDelCarrito(parseInt(btn.dataset.id)));
@@ -484,6 +532,7 @@
         renderCarrito();
         $modalPago.classList.remove('mostrar');
         $notas.value = '';
+        cargarProductos();
       } catch (err) {
         mostrarToast('Error al registrar la venta');
         console.error(err);
@@ -492,6 +541,71 @@
 
     $modalPago.addEventListener('click', (e) => {
       if (e.target === $modalPago) $modalPago.classList.remove('mostrar');
+    });
+
+    document.getElementById('modalStock').addEventListener('click', (e) => {
+      if (e.target === document.getElementById('modalStock')) {
+        document.getElementById('modalStock').classList.remove('mostrar');
+      }
+    });
+
+    async function abrirStock() {
+      const productos = await window.api.getAllProducts();
+      const contenedor = document.getElementById('stockList');
+      contenedor.innerHTML = productos.map(p => {
+        const stock = p.stock_actual;
+        let cls = 'stock-bien';
+        if (stock === 0) cls = 'stock-cero';
+        else if (stock <= 3) cls = 'stock-mal';
+        else if (stock <= 10) cls = 'stock-medio';
+        return `
+          <div class="item-carrito">
+            <div class="info">
+              <div class="nombre-item">${p.nombre}</div>
+              <div class="detalle-item">${p.variante} · ${p.categoria}</div>
+            </div>
+            <div style="display:flex;align-items:center;gap:8px">
+              <button class="btn-stock-resta" data-id="${p.id}" style="background:#e8ddd2;border:none;width:26px;height:26px;border-radius:50%;cursor:pointer;font-weight:600;color:#5c3a1e">−</button>
+              <input class="stock-input" data-id="${p.id}" type="number" min="0" value="${stock}" style="width:60px;text-align:center;padding:4px;border:1px solid #d4c4b3;border-radius:6px;font-size:14px">
+              <button class="btn-stock-suma" data-id="${p.id}" style="background:#e8ddd2;border:none;width:26px;height:26px;border-radius:50%;cursor:pointer;font-weight:600;color:#5c3a1e">+</button>
+              <span class="stock-badge ${cls}" style="margin:0">${stock}</span>
+            </div>
+          </div>`;
+      }).join('');
+
+      contenedor.querySelectorAll('.btn-stock-resta').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const input = contenedor.querySelector(`.stock-input[data-id="${btn.dataset.id}"]`);
+          const val = parseInt(input.value) || 0;
+          if (val > 0) input.value = val - 1;
+        });
+      });
+      contenedor.querySelectorAll('.btn-stock-suma').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const input = contenedor.querySelector(`.stock-input[data-id="${btn.dataset.id}"]`);
+          input.value = (parseInt(input.value) || 0) + 1;
+        });
+      });
+      contenedor.querySelectorAll('.stock-input').forEach(input => {
+        input.addEventListener('change', () => {
+          if (parseInt(input.value) < 0) input.value = 0;
+        });
+      });
+
+      document.getElementById('modalStock').classList.add('mostrar');
+    }
+
+    document.getElementById('btn-stock').addEventListener('click', abrirStock);
+    document.getElementById('btnCerrarStock').addEventListener('click', async () => {
+      const inputs = document.querySelectorAll('.stock-input');
+      for (const input of inputs) {
+        const id = parseInt(input.dataset.id);
+        const val = parseInt(input.value) || 0;
+        await window.api.updateStock({ producto_id: id, stock_actual: val });
+      }
+      document.getElementById('modalStock').classList.remove('mostrar');
+      mostrarToast('Stock actualizado');
+      cargarProductos();
     });
 
     async function init() {
