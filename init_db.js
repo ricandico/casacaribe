@@ -152,6 +152,10 @@ if (!columnasVentas.find(c => c.name === 'saldo_pendiente')) {
     db.prepare("ALTER TABLE ventas ADD COLUMN saldo_pendiente REAL DEFAULT 0").run();
     console.log('Migración: columna saldo_pendiente agregada a ventas.');
 }
+if (!columnasVentas.find(c => c.name === 'fecha_cobro')) {
+    db.prepare("ALTER TABLE ventas ADD COLUMN fecha_cobro TEXT").run();
+    console.log('Migración: columna fecha_cobro agregada a ventas.');
+}
 
 // Crear tablas si no existen
 db.prepare(`

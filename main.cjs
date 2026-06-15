@@ -82,7 +82,7 @@ app.whenReady().then(() => {
   ipcMain.handle('get-sales', () => {
     return db.prepare(`
       SELECT v.id, v.fecha_hora, v.total, v.metodo_pago, v.notas,
-             COUNT(dv.id) as items_count, v.saldo_pendiente
+             COUNT(dv.id) as items_count, v.saldo_pendiente, v.fecha_cobro
       FROM ventas v
       LEFT JOIN detalle_ventas dv ON dv.venta_id = v.id
       GROUP BY v.id
@@ -183,7 +183,7 @@ app.whenReady().then(() => {
   });
 
   ipcMain.handle('cobrar-pendiente', (_, venta_id) => {
-    db.prepare("UPDATE ventas SET estado = 'completada', saldo_pendiente = 0 WHERE id = ?").run(venta_id);
+    db.prepare("UPDATE ventas SET estado = 'completada', saldo_pendiente = 0, fecha_cobro = datetime('now','localtime') WHERE id = ?").run(venta_id);
     return { success: true };
   });
 

@@ -374,7 +374,7 @@
       <button id="btn-stock" class="btn-admin" style="background:rgba(255,255,255,0.15);border:none;color:#fff;padding:8px 16px;border-radius:8px;cursor:pointer;font-size:14px;font-weight:500">📦 Stock</button>
       <button id="btn-usuarios" class="btn-admin" style="background:rgba(255,255,255,0.15);border:none;color:#fff;padding:8px 16px;border-radius:8px;cursor:pointer;font-size:14px;font-weight:500">👥 Usuarios</button>
       <button id="btn-historial-cierres" class="btn-admin" style="background:rgba(255,255,255,0.15);border:none;color:#fff;padding:8px 16px;border-radius:8px;cursor:pointer;font-size:14px;font-weight:500">📁 Cierres</button>
-      <button id="btn-pendientes" class="btn-admin" style="background:rgba(255,255,255,0.15);border:none;color:#fff;padding:8px 16px;border-radius:8px;cursor:pointer;font-size:14px;font-weight:500">📌 Pendientes</button>
+      <button id="btn-pendientes" style="background:rgba(255,255,255,0.15);border:none;color:#fff;padding:8px 16px;border-radius:8px;cursor:pointer;font-size:14px;font-weight:500">📌 Pendientes</button>
       <div class="total-venta-header" id="totalHeader">$ 0,00</div>
       <div class="user-info">
         <div id="userNameDisplay"></div>
@@ -933,7 +933,7 @@
         const fecha = v.fecha_hora ? v.fecha_hora.replace('T', ' ').slice(0, 16) : '';
         const colorPago = v.metodo_pago === 'Efectivo' ? '#2d6a1e' : v.metodo_pago === 'Mercado Pago' ? '#1a6a9e' : '#8a6a00';
         return `
-          <div class="item-carrito" style="cursor:pointer" data-venta-id="${v.id}" data-fecha="${fecha}" data-total="${v.total}" data-pago="${v.metodo_pago}" data-notas="${v.notas || ''}" data-saldo="${v.saldo_pendiente || 0}">
+          <div class="item-carrito" style="cursor:pointer" data-venta-id="${v.id}" data-fecha="${fecha}" data-total="${v.total}" data-pago="${v.metodo_pago}" data-notas="${v.notas || ''}" data-saldo="${v.saldo_pendiente || 0}" data-fecha-cobro="${v.fecha_cobro || ''}">
             <div class="info">
               <div class="nombre-item">Venta #${v.id}</div>
               <div class="detalle-item">${fecha} · ${v.items_count} items</div>
@@ -963,6 +963,7 @@
               const metodo = row.dataset.pago;
               const total = parseFloat(row.dataset.total);
               const saldo = parseFloat(row.dataset.saldo) || 0;
+              const fecha_cobro = row.dataset.fechaCobro;
               const notas = row.dataset.notas;
               const colorPago = metodo === 'Efectivo' ? '#2d6a1e' : metodo === 'Mercado Pago' ? '#1a6a9e' : '#8a6a00';
               detalleDiv.innerHTML = `
@@ -994,6 +995,10 @@
                   ${saldo > 0 ? `<div style="display:flex;justify-content:space-between;color:#b33a3a;font-weight:600">
                     <span>Saldo pendiente</span>
                     <span>${formatear(saldo)}</span>
+                  </div>` : ''}
+                  ${fecha_cobro ? `<div style="display:flex;justify-content:space-between;color:#2d6a1e;font-weight:500">
+                    <span>Cobrada el</span>
+                    <span>${fecha_cobro.replace('T', ' ').slice(0, 16)}</span>
                   </div>` : ''}
                 </div>`;
               detalleDiv.dataset.cargado = '1';
