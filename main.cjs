@@ -119,7 +119,7 @@ app.whenReady().then(() => {
   ipcMain.handle('get-cierre', (_, { usuario_id }) => {
     const hoy = new Date().toISOString().slice(0, 10);
     const ventas = db.prepare(`
-      SELECT v.id, v.fecha_hora, v.total, v.metodo_pago, v.notas,
+      SELECT v.id, v.fecha_hora, v.total, v.notas,
              COUNT(dv.id) as items_count
       FROM ventas v
       LEFT JOIN detalle_ventas dv ON dv.venta_id = v.id
@@ -129,10 +129,14 @@ app.whenReady().then(() => {
     `).all(usuario_id, hoy);
 
     const total = ventas.reduce((s, v) => s + v.total, 0);
-    const porPago = {};
-    for (const v of ventas) {
-      porPago[v.metodo_pago] = (porPago[v.metodo_pago] || 0) + v.total;
-    }
+
+    const porPago = db.prepare(`
+      SELECT p.metodo, COALESCE(SUM(p.monto), 0) as total
+      FROM pagos p
+      JOIN ventas v ON v.id = p.venta_id
+      WHERE v.usuario_id = ? AND DATE(v.fecha_hora) = ? AND v.cerrado = 0
+      GROUP BY p.metodo
+    `).all(usuario_id, hoy).reduce((acc, p) => { acc[p.metodo] = p.total; return acc; }, {});
 
     const usuario = db.prepare('SELECT username FROM usuarios WHERE id = ?').get(usuario_id);
 

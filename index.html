@@ -414,31 +414,30 @@
     </div>
   </div>
 
-  <style>
-    .pago-input { width:100%;padding:8px;border:1px solid #d4c4b3;border-radius:6px;font-size:14px;background:#faf7f4;text-align:right }
-    .pago-fila { display:flex;align-items:center;gap:8px;margin-bottom:6px }
-    .pago-fila label { min-width:110px;font-size:13px;font-weight:500;color:#5c3a1e }
-    #resumenPago { font-size:13px;line-height:1.8;padding:8px 0 }
-    #resumenPago .ok { color:#2d6a1e }
-    #resumenPago .error { color:#b33a3a }
-  </style>
-
   <div class="modal-overlay" id="modalPago">
     <div class="modal" style="width:400px">
       <h2>Finalizar venta</h2>
-      <div style="font-size:18px;font-weight:700;color:#5c3a1e;text-align:center;margin-bottom:12px" id="modalPagoTotal"></div>
+      <div style="font-size:20px;font-weight:700;color:#5c3a1e;text-align:center;margin-bottom:16px;padding-bottom:12px;border-bottom:1px solid #e0d6ca" id="modalPagoTotal"></div>
 
-      <div class="pago-fila"><label>Efectivo</label><input class="pago-input pago-metodo" id="pagoEfectivo" type="number" min="0" step="any" value="0"></div>
-      <div class="pago-fila" id="filaRecibido" style="display:none"><label>Recibí</label><input class="pago-input" id="pagoRecibido" type="number" min="0" step="any" value="0" style="font-weight:600"></div>
-      <div class="pago-fila" id="filaCambio" style="display:none"><label>Cambio</label><input class="pago-input" id="pagoCambio" type="text" readonly style="background:#e4f0e0;color:#2d6a1e;font-weight:700"></div>
-      <div class="pago-fila"><label>Mercado Pago</label><input class="pago-input pago-metodo" id="pagoMp" type="number" min="0" step="any" value="0"></div>
-      <div class="pago-fila"><label>Débito</label><input class="pago-input pago-metodo" id="pagoDebito" type="number" min="0" step="any" value="0"></div>
-      <div class="pago-fila"><label>Fiado</label><input class="pago-input" id="pagoFiado" type="number" min="0" step="any" value="0" readonly style="background:#f0e8e0;color:#8a7a6a"></div>
+      <div style="display:flex;flex-direction:column;gap:8px;margin-bottom:12px">
+        <div style="display:flex;align-items:center;gap:8px">
+          <label style="min-width:115px;font-size:13px;font-weight:600;color:#5c3a1e">Efectivo</label>
+          <input class="pago-input" id="pagoEfectivo" type="number" min="0" step="any" value="0" style="flex:1">
+        </div>
+        <div style="display:flex;align-items:center;gap:8px">
+          <label style="min-width:115px;font-size:13px;font-weight:600;color:#5c3a1e">Mercado Pago</label>
+          <input class="pago-input" id="pagoMp" type="number" min="0" step="any" value="0" style="flex:1">
+        </div>
+        <div style="display:flex;align-items:center;gap:8px">
+          <label style="min-width:115px;font-size:13px;font-weight:600;color:#5c3a1e">Transferencia</label>
+          <input class="pago-input" id="pagoTransferencia" type="number" min="0" step="any" value="0" style="flex:1">
+        </div>
+      </div>
 
-      <div id="resumenPago"></div>
+      <div id="resumenPago" style="font-size:14px;line-height:2;padding:8px 12px;background:#faf7f4;border-radius:8px;margin-bottom:12px;min-height:40px"></div>
 
-      <label for="notasPago">Notas (opcional)</label>
-      <textarea id="notasPago" placeholder="Ej: cliente paga a fin de mes…" style="width:100%;padding:8px;border:1px solid #d4c4b3;border-radius:6px;font-size:13px;background:#faf7f4;resize:vertical;min-height:50px;margin-bottom:8px"></textarea>
+      <label for="notasPago" style="font-size:13px;font-weight:500;color:#5c3a1e">Notas (opcional)</label>
+      <textarea id="notasPago" placeholder="Ej: cliente paga a fin de mes…" style="width:100%;padding:8px;border:1px solid #d4c4b3;border-radius:6px;font-size:13px;background:#faf7f4;resize:vertical;min-height:50px;margin-top:4px;margin-bottom:12px"></textarea>
 
       <div class="modal-botones">
         <button class="btn-cancel" id="btnCancelarPago">Cancelar</button>
@@ -539,12 +538,7 @@
     const $modalPagoTotal = document.getElementById('modalPagoTotal');
     const $pagoEfectivo = document.getElementById('pagoEfectivo');
     const $pagoMp = document.getElementById('pagoMp');
-    const $pagoDebito = document.getElementById('pagoDebito');
-    const $pagoFiado = document.getElementById('pagoFiado');
-    const $pagoRecibido = document.getElementById('pagoRecibido');
-    const $pagoCambio = document.getElementById('pagoCambio');
-    const $filaRecibido = document.getElementById('filaRecibido');
-    const $filaCambio = document.getElementById('filaCambio');
+    const $pagoTransferencia = document.getElementById('pagoTransferencia');
     const $resumenPago = document.getElementById('resumenPago');
     const $notasPago = document.getElementById('notasPago');
     const $btnCancelarPago = document.getElementById('btnCancelarPago');
@@ -702,48 +696,45 @@
     $buscador.addEventListener('input', cargarProductos);
 
     function actualizarResumenPago() {
-      const totalCarrito = carrito.reduce((t, i) => t + i.subtotal, 0);
+      const total = carrito.reduce((t, i) => t + i.subtotal, 0);
       const ef = parseFloat($pagoEfectivo.value) || 0;
       const mp = parseFloat($pagoMp.value) || 0;
-      const deb = parseFloat($pagoDebito.value) || 0;
-      const pagado = ef + mp + deb;
-      const fiado = Math.max(0, totalCarrito - pagado);
+      const tr = parseFloat($pagoTransferencia.value) || 0;
+      const suma = ef + mp + tr;
 
-      $pagoFiado.value = fiado.toFixed(2);
-      $modalPagoTotal.textContent = formatear(totalCarrito);
+      $modalPagoTotal.textContent = formatear(total);
 
-      const tieneEfectivo = ef > 0;
-      $filaRecibido.style.display = tieneEfectivo ? '' : 'none';
-      $filaCambio.style.display = tieneEfectivo ? '' : 'none';
-
-      if (tieneEfectivo) {
-        const recibido = parseFloat($pagoRecibido.value) || 0;
-        const cambio = Math.max(0, recibido - ef);
-        $pagoCambio.value = cambio > 0 ? formatear(cambio) : '$ 0,00';
+      if (suma === 0) {
+        $resumenPago.innerHTML = '';
+        return;
       }
 
-      if (fiado > 0) {
-        $resumenPago.innerHTML = `
-          <div class="${pagado >= totalCarrito ? 'ok' : 'error'}">
-            Pagado: ${formatear(pagado)}${pagado >= totalCarrito ? ' ✅' : ''}<br>
-            <strong>Fiado: ${formatear(fiado)}</strong>
-          </div>`;
+      let partes = [];
+
+      if (suma > total) {
+        const cambio = suma - total;
+        partes.push(`<span style="color:#2d6a1e;font-weight:600">✅ Pago completo</span>`);
+        partes.push(`<span style="color:#2d6a1e">Cambio a devolver: <strong>${formatear(cambio)}</strong></span>`);
+      } else if (suma < total) {
+        const fiado = total - suma;
+        partes.push(`<span>Pagado: ${formatear(suma)}</span>`);
+        partes.push(`<span style="color:#b33a3a;font-weight:600">Fiado: ${formatear(fiado)}</span>`);
       } else {
-        $resumenPago.innerHTML = `<div class="ok">✅ Pago completo</div>`;
+        partes.push(`<span style="color:#2d6a1e;font-weight:600">✅ Pago exacto</span>`);
       }
+
+      $resumenPago.innerHTML = partes.join('<br>');
     }
 
-    document.querySelectorAll('.pago-metodo').forEach(input => {
-      input.addEventListener('input', actualizarResumenPago);
-    });
-    $pagoRecibido.addEventListener('input', actualizarResumenPago);
+    document.getElementById('pagoEfectivo').addEventListener('input', actualizarResumenPago);
+    document.getElementById('pagoMp').addEventListener('input', actualizarResumenPago);
+    document.getElementById('pagoTransferencia').addEventListener('input', actualizarResumenPago);
 
     $btnPagar.addEventListener('click', () => {
       const total = carrito.reduce((t, i) => t + i.subtotal, 0);
       $pagoEfectivo.value = total.toFixed(2);
       $pagoMp.value = '0';
-      $pagoDebito.value = '0';
-      $pagoRecibido.value = total.toFixed(2);
+      $pagoTransferencia.value = '0';
       $notasPago.value = '';
       actualizarResumenPago();
       $modalPago.classList.add('mostrar');
@@ -751,27 +742,28 @@
 
     $btnCancelarPago.addEventListener('click', () => {
       $modalPago.classList.remove('mostrar');
-      $filaRecibido.style.display = 'none';
-      $filaCambio.style.display = 'none';
     });
 
     $btnConfirmarPago.addEventListener('click', async () => {
       const total = carrito.reduce((t, i) => t + i.subtotal, 0);
       const ef = parseFloat($pagoEfectivo.value) || 0;
       const mp = parseFloat($pagoMp.value) || 0;
-      const deb = parseFloat($pagoDebito.value) || 0;
+      const tr = parseFloat($pagoTransferencia.value) || 0;
+      const suma = ef + mp + tr;
       const notas = $notasPago.value.trim();
 
-      const pagos = [];
-      if (ef > 0) pagos.push({ metodo: 'Efectivo', monto: ef });
-      if (mp > 0) pagos.push({ metodo: 'Mercado Pago', monto: mp });
-      if (deb > 0) pagos.push({ metodo: 'Débito', monto: deb });
-
-      const montoPagado = pagos.reduce((s, p) => s + p.monto, 0);
-      if (montoPagado > total) {
-        mostrarToast('El pago no puede superar el total');
+      if (suma === 0) {
+        mostrarToast('Indicá al menos un método de pago');
         return;
       }
+
+      const pagoEfectivoReal = Math.min(ef, Math.max(0, total - mp - tr));
+      const cambio = ef - pagoEfectivoReal;
+
+      const pagos = [];
+      if (pagoEfectivoReal > 0) pagos.push({ metodo: 'Efectivo', monto: pagoEfectivoReal });
+      if (mp > 0) pagos.push({ metodo: 'Mercado Pago', monto: mp });
+      if (tr > 0) pagos.push({ metodo: 'Transferencia', monto: tr });
 
       try {
         const result = await window.api.createSale({
@@ -787,10 +779,9 @@
           usuario_id: usuarioActual.id,
         });
 
-        const fiado = total - montoPagado;
-        const msg = fiado > 0
-          ? `Venta #${result.ventaId} — fiado $${fiado.toFixed(2)}`
-          : `Venta #${result.ventaId} registrada — ${formatear(total)}`;
+        let msg = `Venta #${result.ventaId} registrada — ${formatear(total)}`;
+        if (cambio > 0) msg += ` (cambio: ${formatear(cambio)})`;
+        if (suma < total) msg += ` — fiado: ${formatear(total - suma)}`;
 
         mostrarToast(msg);
         carrito.length = 0;
