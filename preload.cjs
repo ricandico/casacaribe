@@ -9,6 +9,8 @@ contextBridge.exposeInMainWorld('api', {
   getSales: () => ipcRenderer.invoke('get-sales'),
   getSaleDetail: (saleId) => ipcRenderer.invoke('get-sale-detail', saleId),
   getCierre: (data) => ipcRenderer.invoke('get-cierre', data),
+  confirmarCierre: (data) => ipcRenderer.invoke('confirmar-cierre', data),
+  getHistorialCierres: () => ipcRenderer.invoke('get-historial-cierres'),
   getTodayTotal: (usuario_id) => ipcRenderer.invoke('get-today-total', usuario_id),
   login: (data) => ipcRenderer.invoke('login', data),
   getUsers: () => ipcRenderer.invoke('get-users'),

@@ -114,7 +114,7 @@ app.whenReady().then(() => {
              COUNT(dv.id) as items_count
       FROM ventas v
       LEFT JOIN detalle_ventas dv ON dv.venta_id = v.id
-      WHERE v.usuario_id = ? AND DATE(v.fecha_hora) = ?
+      WHERE v.usuario_id = ? AND DATE(v.fecha_hora) = ? AND v.cerrado = 0
       GROUP BY v.id
       ORDER BY v.id
     `).all(usuario_id, hoy);
@@ -130,12 +130,39 @@ app.whenReady().then(() => {
     return { ventas, total, cantidad: ventas.length, porPago, usuario: usuario?.username || '' };
   });
 
+  ipcMain.handle('confirmar-cierre', (_, { usuario_id, total, cantidad, por_pago }) => {
+    const hoy = new Date().toISOString().slice(0, 10);
+    const hacerCierre = db.transaction(() => {
+      db.prepare(`
+        INSERT INTO cierres (usuario_id, fecha, total, cantidad, por_pago)
+        VALUES (?, ?, ?, ?, ?)
+      `).run(usuario_id, hoy, total, cantidad, JSON.stringify(por_pago));
+
+      db.prepare(`
+        UPDATE ventas SET cerrado = 1
+        WHERE usuario_id = ? AND DATE(fecha_hora) = ? AND cerrado = 0
+      `).run(usuario_id, hoy);
+    });
+    hacerCierre();
+    return { success: true };
+  });
+
+  ipcMain.handle('get-historial-cierres', () => {
+    return db.prepare(`
+      SELECT c.id, c.fecha, c.hora_cierre, c.total, c.cantidad, c.por_pago,
+             u.username
+      FROM cierres c
+      JOIN usuarios u ON u.id = c.usuario_id
+      ORDER BY c.id DESC
+    `).all();
+  });
+
   ipcMain.handle('get-today-total', (_, usuario_id) => {
     const hoy = new Date().toISOString().slice(0, 10);
     const res = db.prepare(`
       SELECT COUNT(*) as cantidad, COALESCE(SUM(total), 0) as total
       FROM ventas
-      WHERE usuario_id = ? AND DATE(fecha_hora) = ?
+      WHERE usuario_id = ? AND DATE(fecha_hora) = ? AND cerrado = 0
     `).get(usuario_id, hoy);
     return res;
   });

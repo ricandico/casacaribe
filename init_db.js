@@ -135,12 +135,29 @@ if (totalUsuarios.count === 0) {
 }
 
 // 4. MIGRACIONES (para tablas que ya existen)
-// Agregar usuario_id a ventas si no existe
 const columnasVentas = db.prepare("PRAGMA table_info(ventas)").all();
 if (!columnasVentas.find(c => c.name === 'usuario_id')) {
     db.prepare("ALTER TABLE ventas ADD COLUMN usuario_id INTEGER REFERENCES usuarios(id)").run();
     console.log('Migración: columna usuario_id agregada a ventas.');
 }
+if (!columnasVentas.find(c => c.name === 'cerrado')) {
+    db.prepare("ALTER TABLE ventas ADD COLUMN cerrado INTEGER DEFAULT 0").run();
+    console.log('Migración: columna cerrado agregada a ventas.');
+}
+
+// Crear tabla cierres si no existe
+db.prepare(`
+    CREATE TABLE IF NOT EXISTS cierres (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        usuario_id INTEGER NOT NULL,
+        fecha TEXT NOT NULL,
+        hora_cierre TEXT DEFAULT (datetime('now', 'localtime')),
+        total REAL NOT NULL,
+        cantidad INTEGER NOT NULL,
+        por_pago TEXT NOT NULL,
+        FOREIGN KEY (usuario_id) REFERENCES usuarios(id)
+    )
+`).run();
 
 // Cerramos la conexión
 db.close();
