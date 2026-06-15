@@ -400,7 +400,7 @@
         if (stock === 0) stockCls = 'stock-cero';
         else if (stock <= 3) stockCls = 'stock-mal';
         else if (stock <= 10) stockCls = 'stock-medio';
-        const stockTxt = stock === 0 ? 'Sin stock' : `${stock} uds`;
+        const stockTxt = stock === 0 ? 'Sin stock' : `${stock} unit`;
         return `
         <div class="producto-card" data-id="${p.id}" data-nombre="${p.nombre}" data-variante="${p.variante}" data-precio="${p.precio_venta}" data-stock="${stock}">
           <div class="nombre">${p.nombre}</div>
@@ -472,7 +472,7 @@
           <div class="info">
             <div class="nombre-item">${item.nombre}</div>
             <div class="detalle-item">${item.variante} · ${formatear(item.precio_unitario)} c/u</div>
-            <div style="font-size:11px;color:${stockOk ? '#8a7a6a' : '#b33a3a'};margin-top:2px">${stockOk ? `queda ${stockRestante} uds` : 'stock insuficiente'}</div>
+            <div style="font-size:11px;color:${stockOk ? '#8a7a6a' : '#b33a3a'};margin-top:2px">${stockOk ? `queda ${stockRestante} unit` : 'stock insuficiente'}</div>
           </div>
           <div class="acciones">
             <button class="btn-restar" data-id="${item.producto_id}">−</button>
