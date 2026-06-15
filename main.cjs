@@ -70,6 +70,28 @@ app.whenReady().then(() => {
     return { success: true };
   });
 
+  ipcMain.handle('get-sales', () => {
+    return db.prepare(`
+      SELECT v.id, v.fecha_hora, v.total, v.metodo_pago, v.notas,
+             COUNT(dv.id) as items_count
+      FROM ventas v
+      LEFT JOIN detalle_ventas dv ON dv.venta_id = v.id
+      GROUP BY v.id
+      ORDER BY v.id DESC
+    `).all();
+  });
+
+  ipcMain.handle('get-sale-detail', (_, saleId) => {
+    return db.prepare(`
+      SELECT dv.cantidad, dv.precio_unitario, dv.subtotal,
+             p.nombre, p.variante
+      FROM detalle_ventas dv
+      JOIN productos p ON p.id = dv.producto_id
+      WHERE dv.venta_id = ?
+      ORDER BY dv.id
+    `).all(saleId);
+  });
+
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) createWindow();
   });

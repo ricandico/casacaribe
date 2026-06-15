@@ -280,6 +280,7 @@
   <header>
     <h1>Casa Caribe — Panadería</h1>
     <div style="display:flex;align-items:center;gap:12px">
+      <button id="btn-historial" style="background:rgba(255,255,255,0.15);border:none;color:#fff;padding:8px 16px;border-radius:8px;cursor:pointer;font-size:14px;font-weight:500">📋 Historial</button>
       <button id="btn-stock" style="background:rgba(255,255,255,0.15);border:none;color:#fff;padding:8px 16px;border-radius:8px;cursor:pointer;font-size:14px;font-weight:500">📦 Stock</button>
       <div class="total-venta-header" id="totalHeader">Bs. 0,00</div>
     </div>
@@ -321,6 +322,16 @@
       <div class="modal-botones">
         <button class="btn-cancel" id="btnCancelarPago">Cancelar</button>
         <button class="btn-confirm" id="btnConfirmarPago">Confirmar pago</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal-overlay" id="modalHistorial">
+    <div class="modal" style="width:640px;max-height:85vh;overflow-y:auto">
+      <h2>Historial de Ventas</h2>
+      <div id="historialList"></div>
+      <div class="modal-botones" style="margin-top:12px">
+        <button class="btn-cancel" id="btnCerrarHistorial">Cerrar</button>
       </div>
     </div>
   </div>
@@ -594,6 +605,72 @@
 
       document.getElementById('modalStock').classList.add('mostrar');
     }
+
+    async function abrirHistorial() {
+      const ventas = await window.api.getSales();
+      const contenedor = document.getElementById('historialList');
+
+      if (ventas.length === 0) {
+        contenedor.innerHTML = '<div style="text-align:center;color:#8a7a6a;padding:20px">No hay ventas registradas</div>';
+        document.getElementById('modalHistorial').classList.add('mostrar');
+        return;
+      }
+
+      contenedor.innerHTML = ventas.map(v => {
+        const fecha = v.fecha_hora ? v.fecha_hora.replace('T', ' ').slice(0, 16) : '';
+        const colorPago = v.metodo_pago === 'Efectivo' ? '#2d6a1e' : v.metodo_pago === 'Mercado Pago' ? '#1a6a9e' : '#8a6a00';
+        return `
+          <div class="item-carrito" style="cursor:pointer" data-venta-id="${v.id}">
+            <div class="info">
+              <div class="nombre-item">Venta #${v.id}</div>
+              <div class="detalle-item">${fecha} · ${v.items_count} items</div>
+              ${v.notas ? `<div class="detalle-item" style="color:#8a7a6a">${v.notas}</div>` : ''}
+            </div>
+            <div style="text-align:right">
+              <div style="font-weight:700;font-size:16px">${formatear(v.total)}</div>
+              <div style="font-size:11px;color:${colorPago};font-weight:500">${v.metodo_pago}</div>
+            </div>
+          </div>
+          <div class="detalle-venta" id="detalle-${v.id}" style="display:none;padding:4px 16px 8px;background:#faf7f4;border-radius:0 0 10px 10px"></div>`;
+      }).join('');
+
+      contenedor.querySelectorAll('.item-carrito[data-venta-id]').forEach(row => {
+        row.addEventListener('click', async () => {
+          const id = row.dataset.venta_id;
+          const detalleDiv = document.getElementById(`detalle-${id}`);
+          const abierto = detalleDiv.style.display === 'block';
+
+          document.querySelectorAll('.detalle-venta').forEach(d => d.style.display = 'none');
+
+          if (!abierto) {
+            if (!detalleDiv.dataset.cargado) {
+              const items = await window.api.getSaleDetail(parseInt(id));
+              detalleDiv.innerHTML = items.map(i =>
+                `<div style="display:flex;justify-content:space-between;font-size:13px;padding:2px 0">
+                   <span>${i.nombre} ${i.variante} × ${i.cantidad}</span>
+                   <span style="font-weight:500">${formatear(i.subtotal)}</span>
+                 </div>`
+              ).join('');
+              detalleDiv.dataset.cargado = '1';
+            }
+            detalleDiv.style.display = 'block';
+          }
+        });
+      });
+
+      document.getElementById('modalHistorial').classList.add('mostrar');
+    }
+
+    document.getElementById('btn-historial').addEventListener('click', abrirHistorial);
+    document.getElementById('btnCerrarHistorial').addEventListener('click', () => {
+      document.getElementById('modalHistorial').classList.remove('mostrar');
+    });
+
+    document.getElementById('modalHistorial').addEventListener('click', (e) => {
+      if (e.target === document.getElementById('modalHistorial')) {
+        document.getElementById('modalHistorial').classList.remove('mostrar');
+      }
+    });
 
     document.getElementById('btn-stock').addEventListener('click', abrirStock);
     document.getElementById('btnCerrarStock').addEventListener('click', async () => {
