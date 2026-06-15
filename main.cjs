@@ -82,7 +82,7 @@ app.whenReady().then(() => {
   ipcMain.handle('get-sales', () => {
     return db.prepare(`
       SELECT v.id, v.fecha_hora, v.total, v.metodo_pago, v.notas,
-             COUNT(dv.id) as items_count
+             COUNT(dv.id) as items_count, v.saldo_pendiente
       FROM ventas v
       LEFT JOIN detalle_ventas dv ON dv.venta_id = v.id
       GROUP BY v.id

@@ -924,7 +924,7 @@
         const fecha = v.fecha_hora ? v.fecha_hora.replace('T', ' ').slice(0, 16) : '';
         const colorPago = v.metodo_pago === 'Efectivo' ? '#2d6a1e' : v.metodo_pago === 'Mercado Pago' ? '#1a6a9e' : '#8a6a00';
         return `
-          <div class="item-carrito" style="cursor:pointer" data-venta-id="${v.id}" data-fecha="${fecha}" data-total="${v.total}" data-pago="${v.metodo_pago}" data-notas="${v.notas || ''}">
+          <div class="item-carrito" style="cursor:pointer" data-venta-id="${v.id}" data-fecha="${fecha}" data-total="${v.total}" data-pago="${v.metodo_pago}" data-notas="${v.notas || ''}" data-saldo="${v.saldo_pendiente || 0}">
             <div class="info">
               <div class="nombre-item">Venta #${v.id}</div>
               <div class="detalle-item">${fecha} · ${v.items_count} items</div>
@@ -933,6 +933,7 @@
             <div style="text-align:right">
               <div style="font-weight:700;font-size:16px">${formatear(v.total)}</div>
               <div style="font-size:11px;color:${colorPago};font-weight:500">${v.metodo_pago}</div>
+              ${v.saldo_pendiente > 0 ? `<div style="font-size:11px;color:#b33a3a;font-weight:500">📌 adeuda ${formatear(v.saldo_pendiente)}</div>` : ''}
             </div>
           </div>
           <div class="detalle-venta" id="detalle-${v.id}" style="display:none;padding:8px 16px 12px;background:#faf7f4;border-radius:0 0 10px 10px"></div>`;
@@ -952,6 +953,7 @@
               const fecha = row.dataset.fecha;
               const metodo = row.dataset.pago;
               const total = parseFloat(row.dataset.total);
+              const saldo = parseFloat(row.dataset.saldo) || 0;
               const notas = row.dataset.notas;
               const colorPago = metodo === 'Efectivo' ? '#2d6a1e' : metodo === 'Mercado Pago' ? '#1a6a9e' : '#8a6a00';
               detalleDiv.innerHTML = `
@@ -979,6 +981,10 @@
                   ${notas ? `<div style="display:flex;justify-content:space-between">
                     <span style="color:#8a7a6a">Notas</span>
                     <span>${notas}</span>
+                  </div>` : ''}
+                  ${saldo > 0 ? `<div style="display:flex;justify-content:space-between;color:#b33a3a;font-weight:600">
+                    <span>Saldo pendiente</span>
+                    <span>${formatear(saldo)}</span>
                   </div>` : ''}
                 </div>`;
               detalleDiv.dataset.cargado = '1';
