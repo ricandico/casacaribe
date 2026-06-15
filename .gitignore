@@ -1,0 +1,4 @@
+node_modules/
+panaderia.db
+*.log
+.DS_Store

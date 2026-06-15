@@ -1,0 +1,14 @@
+{
+  "type": "module",
+  "main": "main.cjs",
+  "scripts": {
+    "start": "electron .",
+    "init-db": "node init_db.js"
+  },
+  "devDependencies": {
+    "electron": "^42.4.0"
+  },
+  "dependencies": {
+    "better-sqlite3": "^12.10.1"
+  }
+}
