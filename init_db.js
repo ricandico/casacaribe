@@ -190,12 +190,18 @@ db.prepare(`
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         venta_id INTEGER NOT NULL,
         monto REAL NOT NULL,
+        metodo TEXT DEFAULT 'Efectivo',
         fecha TEXT DEFAULT (datetime('now','localtime')),
         usuario_id INTEGER,
         usuario_nombre TEXT,
         FOREIGN KEY (venta_id) REFERENCES ventas(id) ON DELETE CASCADE
     )
 `).run();
+const colCobros = db.prepare("PRAGMA table_info(cobros)").all();
+if (!colCobros.find(c => c.name === 'metodo')) {
+    db.prepare("ALTER TABLE cobros ADD COLUMN metodo TEXT DEFAULT 'Efectivo'").run();
+    console.log('Migración: columna metodo agregada a cobros.');
+}
 
 // Cerramos la conexión
 db.close();

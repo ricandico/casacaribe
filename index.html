@@ -331,7 +331,17 @@
     .login-card button:hover { background: #7a4f2e; }
     .login-error { color: #b33a3a; font-size: 13px; margin-top: 8px; }
 
-    .app-container { display: none; flex-direction: column; height: 100vh; }
+    .app-container { display: none; flex-direction: column; height: 100vh; position: relative; }
+    .app-container::before {
+      content: '';
+      position: fixed;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: url('logo.png') center center / 300px auto no-repeat;
+      opacity: 0.04;
+      pointer-events: none;
+      z-index: 0;
+    }
+    .app-container > * { position: relative; z-index: 1; }
     .app-container.mostrar { display: flex; }
 
     .user-info {
@@ -356,7 +366,7 @@
 <body>
   <div class="login-overlay" id="loginOverlay">
     <div class="login-card">
-      <img src="logo.png" style="width:180px;height:auto;margin-bottom:12px" alt="Casa Caribe">
+      <img src="logo.png" style="width:260px;height:auto;margin-bottom:12px" alt="Casa Caribe">
       <h1>Casa Caribe</h1>
       <p>Panadería — Iniciar sesión</p>
       <input type="text" id="loginUser" placeholder="Usuario" autocomplete="off">
@@ -557,7 +567,7 @@
     }
 
     function formatear(n) {
-      return '$ ' + n.toLocaleString('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+      return '$ ' + n.toLocaleString('es-AR', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
     }
 
     function renderCategorias(categorias) {
@@ -1017,7 +1027,7 @@
                 cobrosEl.innerHTML = '<div style="font-size:12px;color:#2d6a1e;font-weight:600;margin-bottom:4px">Cobros registrados</div>' +
                   cobros.map(c =>
                     `<div style="display:flex;justify-content:space-between;font-size:12px;padding:1px 0">
-                       <span>${c.fecha.replace('T',' ').slice(0,16)} — ${c.usuario_nombre || ''}</span>
+                       <span>${c.fecha.replace('T',' ').slice(0,16)} — ${c.usuario_nombre || ''} (${c.metodo})</span>
                        <span style="font-weight:500">${formatear(c.monto)}</span>
                      </div>`
                   ).join('');
@@ -1100,7 +1110,12 @@
                 </div>
                 <div style="text-align:right">
                   <div style="color:#b33a3a;font-weight:600;margin-bottom:4px">${formatear(v.saldo_pendiente)}</div>
-                  <div style="display:flex;gap:4px;align-items:center">
+                  <div style="display:flex;gap:4px;align-items:center;flex-wrap:wrap;justify-content:flex-end">
+                    <select class="metodo-cobro" data-id="${v.id}" style="padding:4px 6px;border:1px solid #ccc;border-radius:6px;font-size:11px">
+                      <option value="Efectivo">Efectivo</option>
+                      <option value="Mercado Pago">M. Pago</option>
+                      <option value="Transferencia">Transf.</option>
+                    </select>
                     <input type="number" class="monto-cobro" data-id="${v.id}" value="${v.saldo_pendiente}" style="width:80px;padding:4px 6px;border:1px solid #ccc;border-radius:6px;font-size:12px;text-align:right">
                     <button class="btn-cobrar" data-id="${v.id}" style="background:#2d6a1e;color:#fff;border:none;padding:4px 12px;border-radius:6px;cursor:pointer;font-size:12px;font-weight:500;white-space:nowrap">Cobrar</button>
                   </div>
@@ -1113,8 +1128,10 @@
         btn.addEventListener('click', async () => {
           const ventaId = parseInt(btn.dataset.id);
           const input = document.querySelector(`.monto-cobro[data-id="${ventaId}"]`);
+          const select = document.querySelector(`.metodo-cobro[data-id="${ventaId}"]`);
           const monto = input ? parseFloat(input.value) || 0 : 0;
-          await window.api.cobrarPendiente({ venta_id: ventaId, monto, usuario_id: usuarioActual.id, usuario_nombre: usuarioActual.username });
+          const metodo = select ? select.value : 'Efectivo';
+          await window.api.cobrarPendiente({ venta_id: ventaId, monto, metodo, usuario_id: usuarioActual.id, usuario_nombre: usuarioActual.username });
           mostrarToast(monto > 0 ? `Cobro registrado: ${formatear(monto)}` : 'Pendiente cobrado');
           abrirPendientes();
           cargarTodayBar();

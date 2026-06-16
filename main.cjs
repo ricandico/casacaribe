@@ -33,12 +33,17 @@ app.whenReady().then(() => {
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       venta_id INTEGER NOT NULL,
       monto REAL NOT NULL,
+      metodo TEXT DEFAULT 'Efectivo',
       fecha TEXT DEFAULT (datetime('now','localtime')),
       usuario_id INTEGER,
       usuario_nombre TEXT,
       FOREIGN KEY (venta_id) REFERENCES ventas(id) ON DELETE CASCADE
     )
   `).run();
+  const colCobros = db.prepare("PRAGMA table_info(cobros)").all();
+  if (!colCobros.find(c => c.name === 'metodo')) {
+    db.prepare("ALTER TABLE cobros ADD COLUMN metodo TEXT DEFAULT 'Efectivo'").run();
+  }
 
   createWindow();
 
@@ -201,7 +206,7 @@ app.whenReady().then(() => {
     return res;
   });
 
-  ipcMain.handle('cobrar-pendiente', (_, { venta_id, monto, usuario_id, usuario_nombre }) => {
+  ipcMain.handle('cobrar-pendiente', (_, { venta_id, monto, metodo, usuario_id, usuario_nombre }) => {
     const venta = db.prepare('SELECT saldo_pendiente FROM ventas WHERE id = ?').get(venta_id);
     if (!venta) return { success: false, error: 'Venta no encontrada' };
 
@@ -210,7 +215,7 @@ app.whenReady().then(() => {
     const fechaCobro = estado === 'completada' ? ", fecha_cobro = datetime('now','localtime')" : '';
 
     db.prepare(`UPDATE ventas SET estado = ?, saldo_pendiente = ?${fechaCobro} WHERE id = ?`).run(estado, nuevoSaldo, venta_id);
-    db.prepare('INSERT INTO cobros (venta_id, monto, usuario_id, usuario_nombre) VALUES (?, ?, ?, ?)').run(venta_id, monto, usuario_id || null, usuario_nombre || null);
+    db.prepare('INSERT INTO cobros (venta_id, monto, metodo, usuario_id, usuario_nombre) VALUES (?, ?, ?, ?, ?)').run(venta_id, monto, metodo || 'Efectivo', usuario_id || null, usuario_nombre || null);
     return { success: true, estado, nuevoSaldo };
   });
 
@@ -237,7 +242,7 @@ app.whenReady().then(() => {
   });
 
   ipcMain.handle('get-cobros', (_, venta_id) => {
-    return db.prepare('SELECT id, monto, fecha, usuario_nombre FROM cobros WHERE venta_id = ? ORDER BY fecha ASC').all(venta_id);
+    return db.prepare('SELECT id, monto, metodo, fecha, usuario_nombre FROM cobros WHERE venta_id = ? ORDER BY fecha ASC').all(venta_id);
   });
 
   app.on('activate', () => {
