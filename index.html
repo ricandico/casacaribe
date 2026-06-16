@@ -331,18 +331,7 @@
     .login-card button:hover { background: #7a4f2e; }
     .login-error { color: #b33a3a; font-size: 13px; margin-top: 8px; }
 
-    .app-container { display: none; flex-direction: column; height: 100vh; position: relative; }
-    .app-container::before {
-      content: '';
-      position: fixed;
-      top: 0; left: 0; right: 0; bottom: 0;
-      background: url('logo.png') center center / 320px auto no-repeat;
-      opacity: 0.07;
-      pointer-events: none;
-      z-index: 0;
-    }
-    .app-container > header,
-    .app-container > .layout { position: relative; z-index: 1; }
+    .app-container { display: none; flex-direction: column; height: 100vh; }
     .app-container.mostrar { display: flex; }
 
     .user-info {
@@ -826,15 +815,18 @@
         else if (stock <= 3) cls = 'stock-mal';
         else if (stock <= 10) cls = 'stock-medio';
         return `
-          <div class="item-carrito">
-            <div class="info">
+          <div class="item-carrito" style="flex-wrap:wrap;gap:6px">
+            <div class="info" style="min-width:180px">
               <div class="nombre-item">${p.nombre}</div>
               <div class="detalle-item">${p.variante} · ${p.categoria}</div>
             </div>
-            <div style="display:flex;align-items:center;gap:8px">
-              <button class="btn-stock-resta" data-id="${p.id}" style="background:#e8ddd2;border:none;width:26px;height:26px;border-radius:50%;cursor:pointer;font-weight:600;color:#5c3a1e">−</button>
-              <input class="stock-input" data-id="${p.id}" type="number" min="0" value="${stock}" style="width:60px;text-align:center;padding:4px;border:1px solid #d4c4b3;border-radius:6px;font-size:14px">
-              <button class="btn-stock-suma" data-id="${p.id}" style="background:#e8ddd2;border:none;width:26px;height:26px;border-radius:50%;cursor:pointer;font-weight:600;color:#5c3a1e">+</button>
+            <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap">
+              <span style="font-size:12px;color:#8a7a6a">$</span>
+              <input class="precio-input" data-id="${p.id}" type="number" min="0" value="${Math.round(p.precio_venta)}" style="width:65px;text-align:center;padding:4px;border:1px solid #d4c4b3;border-radius:6px;font-size:13px;font-weight:500">
+              <span style="font-size:12px;color:#8a7a6a;margin-left:4px">Stock:</span>
+              <button class="btn-stock-resta" data-id="${p.id}" style="background:#e8ddd2;border:none;width:24px;height:24px;border-radius:50%;cursor:pointer;font-weight:600;color:#5c3a1e;font-size:14px;line-height:1">−</button>
+              <input class="stock-input" data-id="${p.id}" type="number" min="0" value="${stock}" style="width:50px;text-align:center;padding:4px;border:1px solid #d4c4b3;border-radius:6px;font-size:14px">
+              <button class="btn-stock-suma" data-id="${p.id}" style="background:#e8ddd2;border:none;width:24px;height:24px;border-radius:50%;cursor:pointer;font-weight:600;color:#5c3a1e;font-size:14px;line-height:1">+</button>
               <span class="stock-badge ${cls}" style="margin:0">${stock}</span>
             </div>
           </div>`;
@@ -1228,14 +1220,17 @@
 
     document.getElementById('btn-stock').addEventListener('click', abrirStock);
     document.getElementById('btnCerrarStock').addEventListener('click', async () => {
-      const inputs = document.querySelectorAll('.stock-input');
-      for (const input of inputs) {
-        const id = parseInt(input.dataset.id);
-        const val = parseInt(input.value) || 0;
-        await window.api.updateStock({ producto_id: id, stock_actual: val });
+      const ids = new Set();
+      document.querySelectorAll('.stock-input').forEach(i => ids.add(parseInt(i.dataset.id)));
+      for (const id of ids) {
+        const stockInput = document.querySelector(`.stock-input[data-id="${id}"]`);
+        const precioInput = document.querySelector(`.precio-input[data-id="${id}"]`);
+        const stock = parseInt(stockInput.value) || 0;
+        const precio = parseFloat(precioInput.value) || 0;
+        await window.api.updateStock({ producto_id: id, stock_actual: stock, precio_venta: precio });
       }
       document.getElementById('modalStock').classList.remove('mostrar');
-      mostrarToast('Stock actualizado');
+      mostrarToast('Stock y precios actualizados');
       cargarProductos();
     });
 

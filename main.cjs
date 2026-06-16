@@ -97,8 +97,12 @@ app.whenReady().then(() => {
     return crearVenta();
   });
 
-  ipcMain.handle('update-stock', (_, { producto_id, stock_actual }) => {
-    db.prepare('UPDATE productos SET stock_actual = ? WHERE id = ?').run(stock_actual, producto_id);
+  ipcMain.handle('update-stock', (_, { producto_id, stock_actual, precio_venta }) => {
+    if (precio_venta !== undefined) {
+      db.prepare('UPDATE productos SET stock_actual = ?, precio_venta = ? WHERE id = ?').run(stock_actual, precio_venta, producto_id);
+    } else {
+      db.prepare('UPDATE productos SET stock_actual = ? WHERE id = ?').run(stock_actual, producto_id);
+    }
     return { success: true };
   });
 
