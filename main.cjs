@@ -106,6 +106,23 @@ app.whenReady().then(() => {
     return { success: true };
   });
 
+  ipcMain.handle('update-product', (_, { id, nombre, variante, categoria, precio_venta, stock_actual }) => {
+    db.prepare('UPDATE productos SET nombre = ?, variante = ?, categoria = ?, precio_venta = ?, stock_actual = ? WHERE id = ?')
+      .run(nombre, variante, categoria, precio_venta, stock_actual, id);
+    return { success: true };
+  });
+
+  ipcMain.handle('create-product', (_, { nombre, variante, categoria, precio_venta, stock_actual }) => {
+    const result = db.prepare('INSERT INTO productos (nombre, variante, categoria, precio_venta, stock_actual) VALUES (?, ?, ?, ?, ?)')
+      .run(nombre, variante || 'Estándar', categoria, precio_venta, stock_actual || 0);
+    return { success: true, id: result.lastInsertRowid };
+  });
+
+  ipcMain.handle('delete-product', (_, id) => {
+    db.prepare('DELETE FROM productos WHERE id = ?').run(id);
+    return { success: true };
+  });
+
   ipcMain.handle('get-sales', () => {
     return db.prepare(`
       SELECT v.id, v.fecha_hora, v.total, v.metodo_pago, v.notas,

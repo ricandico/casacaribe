@@ -373,6 +373,7 @@
       <button id="btn-historial" style="background:rgba(255,255,255,0.15);border:none;color:#fff;padding:8px 16px;border-radius:8px;cursor:pointer;font-size:14px;font-weight:500">📋 Historial</button>
       <button id="btn-cierre" style="background:rgba(255,255,255,0.15);border:none;color:#fff;padding:8px 16px;border-radius:8px;cursor:pointer;font-size:14px;font-weight:500">📊 Cierre</button>
       <button id="btn-stock" class="btn-admin" style="background:rgba(255,255,255,0.15);border:none;color:#fff;padding:8px 16px;border-radius:8px;cursor:pointer;font-size:14px;font-weight:500">📦 Stock</button>
+      <button id="btn-productos" class="btn-admin" style="background:rgba(255,255,255,0.15);border:none;color:#fff;padding:8px 16px;border-radius:8px;cursor:pointer;font-size:14px;font-weight:500">🏷️ Productos</button>
       <button id="btn-usuarios" class="btn-admin" style="background:rgba(255,255,255,0.15);border:none;color:#fff;padding:8px 16px;border-radius:8px;cursor:pointer;font-size:14px;font-weight:500">👥 Usuarios</button>
       <button id="btn-historial-cierres" class="btn-admin" style="background:rgba(255,255,255,0.15);border:none;color:#fff;padding:8px 16px;border-radius:8px;cursor:pointer;font-size:14px;font-weight:500">📁 Cierres</button>
       <button id="btn-pendientes" style="background:rgba(255,255,255,0.15);border:none;color:#fff;padding:8px 16px;border-radius:8px;cursor:pointer;font-size:14px;font-weight:500">📌 Pendientes</button>
@@ -506,6 +507,16 @@
       <div id="stockList"></div>
       <div class="modal-botones" style="margin-top:12px">
         <button class="btn-cancel" id="btnCerrarStock">Cerrar</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal-overlay" id="modalProductos">
+    <div class="modal" style="width:600px;max-height:85vh;overflow-y:auto">
+      <h2>Productos <button id="btnNuevoProducto" style="background:#2d6a1e;color:#fff;border:none;padding:4px 12px;border-radius:6px;cursor:pointer;font-size:13px;font-weight:500;margin-left:12px;vertical-align:middle">+ Nuevo</button></h2>
+      <div id="productosList"></div>
+      <div class="modal-botones" style="margin-top:12px">
+        <button class="btn-cancel" id="btnCerrarProductos">Cerrar</button>
       </div>
     </div>
   </div>
@@ -1232,6 +1243,73 @@
       document.getElementById('modalStock').classList.remove('mostrar');
       mostrarToast('Stock y precios actualizados');
       cargarProductos();
+    });
+
+    async function abrirProductos() {
+      const productos = await window.api.getAllProducts();
+      const contenedor = document.getElementById('productosList');
+      contenedor.innerHTML = productos.map(p => `
+        <div class="item-carrito" style="flex-wrap:wrap;gap:4px;padding:8px 12px">
+          <div style="display:flex;gap:6px;flex-wrap:wrap;width:100%">
+            <input class="prod-nombre" data-id="${p.id}" value="${p.nombre}" style="flex:2;min-width:120px;padding:4px 6px;border:1px solid #d4c4b3;border-radius:6px;font-size:13px">
+            <input class="prod-variante" data-id="${p.id}" value="${p.variante}" style="flex:1;min-width:80px;padding:4px 6px;border:1px solid #d4c4b3;border-radius:6px;font-size:13px">
+            <select class="prod-categoria" data-id="${p.id}" style="flex:1;min-width:90px;padding:4px 6px;border:1px solid #d4c4b3;border-radius:6px;font-size:13px">
+              ${['Panadería','Pastelería','Facturas','Salado','Bebidas','Otros'].map(c =>
+                `<option value="${c}" ${p.categoria === c ? 'selected' : ''}>${c}</option>`
+              ).join('')}
+            </select>
+            <input class="prod-precio" data-id="${p.id}" type="number" min="0" value="${Math.round(p.precio_venta)}" style="width:70px;padding:4px 6px;border:1px solid #d4c4b3;border-radius:6px;font-size:13px;text-align:right">
+            <input class="prod-stock" data-id="${p.id}" type="number" min="0" value="${p.stock_actual}" style="width:55px;padding:4px 6px;border:1px solid #d4c4b3;border-radius:6px;font-size:13px;text-align:right">
+            <button class="btn-prod-delete" data-id="${p.id}" style="background:#b33a3a;color:#fff;border:none;width:28px;height:28px;border-radius:6px;cursor:pointer;font-size:14px;line-height:1">✕</button>
+          </div>
+        </div>
+      `).join('');
+
+      contenedor.querySelectorAll('.btn-prod-delete').forEach(btn => {
+        btn.addEventListener('click', async () => {
+          if (!confirm('¿Eliminar este producto?')) return;
+          await window.api.deleteProduct(parseInt(btn.dataset.id));
+          mostrarToast('Producto eliminado');
+          abrirProductos();
+          cargarProductos();
+        });
+      });
+
+      document.getElementById('modalProductos').classList.add('mostrar');
+    }
+
+    document.getElementById('btn-productos').addEventListener('click', abrirProductos);
+    document.getElementById('btnCerrarProductos').addEventListener('click', async () => {
+      const productos = document.querySelectorAll('.prod-nombre');
+      for (const el of productos) {
+        const id = parseInt(el.dataset.id);
+        const nombre = el.value.trim();
+        const variante = document.querySelector(`.prod-variante[data-id="${id}"]`).value.trim();
+        const categoria = document.querySelector(`.prod-categoria[data-id="${id}"]`).value;
+        const precio = parseFloat(document.querySelector(`.prod-precio[data-id="${id}"]`).value) || 0;
+        const stock = parseInt(document.querySelector(`.prod-stock[data-id="${id}"]`).value) || 0;
+        if (nombre) {
+          await window.api.updateProduct({ id, nombre, variante, categoria, precio_venta: precio, stock_actual: stock });
+        }
+      }
+      document.getElementById('modalProductos').classList.remove('mostrar');
+      mostrarToast('Productos actualizados');
+      cargarProductos();
+    });
+    document.getElementById('btnNuevoProducto').addEventListener('click', async () => {
+      const nombre = prompt('Nombre del producto:');
+      if (!nombre) return;
+      const categoria = prompt('Categoría (Panadería, Pastelería, Facturas, Salado, Bebidas, Otros):') || 'Otros';
+      const precio = parseFloat(prompt('Precio de venta ($):')) || 0;
+      await window.api.createProduct({ nombre, variante: 'Estándar', categoria, precio_venta: precio, stock_actual: 0 });
+      mostrarToast('Producto creado');
+      abrirProductos();
+      cargarProductos();
+    });
+    document.getElementById('modalProductos').addEventListener('click', (e) => {
+      if (e.target === document.getElementById('modalProductos')) {
+        document.getElementById('modalProductos').classList.remove('mostrar');
+      }
     });
 
     function mostrarApp(user) {
