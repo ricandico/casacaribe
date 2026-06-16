@@ -863,11 +863,7 @@
       mostrarToast('Cierre confirmado — turno finalizado');
       cargarTodayBar();
     });
-    document.getElementById('modalCierre').addEventListener('click', (e) => {
-      if (e.target === document.getElementById('modalCierre')) {
-        document.getElementById('modalCierre').classList.remove('mostrar');
-      }
-    });
+
 
     async function abrirHistorial() {
       const ventas = await window.api.getSales();
@@ -1013,11 +1009,7 @@
     document.getElementById('btnCerrarHistorialCierres').addEventListener('click', () => {
       document.getElementById('modalHistorialCierres').classList.remove('mostrar');
     });
-    document.getElementById('modalHistorialCierres').addEventListener('click', (e) => {
-      if (e.target === document.getElementById('modalHistorialCierres')) {
-        document.getElementById('modalHistorialCierres').classList.remove('mostrar');
-      }
-    });
+
 
     async function abrirPendientes() {
       const pendientes = await window.api.getPendientes();
@@ -1083,22 +1075,14 @@
     document.getElementById('btnCerrarPendientes').addEventListener('click', () => {
       document.getElementById('modalPendientes').classList.remove('mostrar');
     });
-    document.getElementById('modalPendientes').addEventListener('click', (e) => {
-      if (e.target === document.getElementById('modalPendientes')) {
-        document.getElementById('modalPendientes').classList.remove('mostrar');
-      }
-    });
+
 
     document.getElementById('btn-historial').addEventListener('click', abrirHistorial);
     document.getElementById('btnCerrarHistorial').addEventListener('click', () => {
       document.getElementById('modalHistorial').classList.remove('mostrar');
     });
 
-    document.getElementById('modalHistorial').addEventListener('click', (e) => {
-      if (e.target === document.getElementById('modalHistorial')) {
-        document.getElementById('modalHistorial').classList.remove('mostrar');
-      }
-    });
+
 
     let usuarioActual = null;
 
@@ -1135,11 +1119,7 @@
       document.getElementById('modalUsuarios').classList.remove('mostrar');
     });
 
-    document.getElementById('modalUsuarios').addEventListener('click', (e) => {
-      if (e.target === document.getElementById('modalUsuarios')) {
-        document.getElementById('modalUsuarios').classList.remove('mostrar');
-      }
-    });
+
 
     document.getElementById('btn-add-user').addEventListener('click', async () => {
       const username = document.getElementById('newUserName').value.trim();
@@ -1233,11 +1213,7 @@
       abrirProductos();
       cargarProductos();
     });
-    document.getElementById('modalProductos').addEventListener('click', (e) => {
-      if (e.target === document.getElementById('modalProductos')) {
-        document.getElementById('modalProductos').classList.remove('mostrar');
-      }
-    });
+
 
     function mostrarApp(user) {
       usuarioActual = user;
