@@ -104,6 +104,28 @@ El archivo `init_db.js` detecta columnas faltantes y las agrega automáticamente
 |-------------------|--------------------------------------------|
 | `pnpm run start`  | Inicia la aplicación Electron              |
 | `pnpm run init-db`| Rebuild + migración + rebuild para Electron |
+| `pnpm run dist`   | Empaqueta para la plataforma actual (macOS o Windows) |
+| `pnpm run dist:mac` | Genera `.dmg` para macOS                 |
+| `pnpm run dist:win` | Genera `.exe` instalador para Windows     |
+
+## Distribución
+
+El proyecto incluye `electron-builder` para generar instalables.
+
+### macOS
+```bash
+pnpm run dist:mac
+```
+Genera un archivo `.dmg` en la carpeta `dist/`. Solo funciona en macOS.
+
+### Windows
+```bash
+pnpm run dist:win
+```
+Genera un instalador `.exe` (NSIS) en `dist/`.  
+Para buildear en macOS necesitás [Wine](https://www.winehq.org/). O directamente corré el comando en una PC con Windows.
+
+> El instalador incluye la app + node_modules (con better-sqlite3 ya compilado para esa plataforma). Al abrir la app por primera vez se crea automáticamente `panaderia.db` en el directorio de la app. Si querés mantener la base de datos entre reinstalaciones, copiala antes.
 
 ## Notas
 

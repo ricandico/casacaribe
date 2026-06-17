@@ -3,12 +3,46 @@
   "main": "main.cjs",
   "scripts": {
     "start": "electron .",
+    "dist": "electron-builder",
+    "dist:mac": "electron-builder --mac",
+    "dist:win": "electron-builder --win",
     "init-db": "pnpm rebuild better-sqlite3 && node init_db.js && npx electron-rebuild -f -w better-sqlite3",
     "postinstall": "electron-rebuild -f -w better-sqlite3"
   },
+  "build": {
+    "appId": "com.casacaribe.pos",
+    "productName": "Casa Caribe POS",
+    "directories": {
+      "output": "dist"
+    },
+    "files": [
+      "main.cjs",
+      "preload.cjs",
+      "index.html",
+      "init_db.js",
+      "logo.png",
+      "node_modules/**/*"
+    ],
+    "extraResources": [
+      "logo.png"
+    ],
+    "mac": {
+      "target": "dmg",
+      "icon": null
+    },
+    "win": {
+      "target": "nsis",
+      "icon": null
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true
+    }
+  },
   "devDependencies": {
     "@electron/rebuild": "^4.0.4",
-    "electron": "^42.4.0"
+    "electron": "^42.4.0",
+    "electron-builder": "^26.15.3"
   },
   "dependencies": {
     "better-sqlite3": "^12.10.1"
