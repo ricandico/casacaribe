@@ -1,4 +1,7 @@
 {
+  "name": "casacaribe-pos",
+  "version": "1.0.0",
+  "description": "Casa Caribe - Punto de Venta",
   "type": "module",
   "main": "main.cjs",
   "scripts": {
