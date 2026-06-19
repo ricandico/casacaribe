@@ -548,7 +548,10 @@
     <div class="modal" style="width:800px;max-width:95vw;max-height:85vh;overflow-y:auto">
       <h2>Productos <button id="btnNuevoProducto" style="background:#2d6a1e;color:#fff;border:none;padding:4px 12px;border-radius:6px;cursor:pointer;font-size:13px;font-weight:500;margin-left:12px;vertical-align:middle">+ Nuevo</button></h2>
       <div id="productosList"></div>
-      <div class="modal-botones" style="margin-top:12px">
+      <div class="modal-botones" style="margin-top:12px;justify-content:space-between">
+        <div>
+          <button id="btnReiniciarDB" style="background:#b33a3a;color:#fff;border:none;padding:6px 12px;border-radius:6px;cursor:pointer;font-size:11px;font-weight:500">🔄 Reiniciar Base de Datos</button>
+        </div>
         <button class="btn-cancel" id="btnCerrarProductos">Cerrar</button>
       </div>
     </div>
@@ -629,6 +632,29 @@
 
     function formatear(n) {
       return '$ ' + n.toLocaleString('es-AR', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
+    }
+
+    function customPrompt(msg, defaultValue = '') {
+      return new Promise(resolve => {
+        const overlay = document.createElement('div');
+        overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.4);display:flex;align-items:center;justify-content:center;z-index:9999';
+        const div = document.createElement('div');
+        div.style.cssText = 'background:#fff;border-radius:14px;padding:24px;width:340px;text-align:center';
+        div.innerHTML = `
+          <div style="font-size:14px;color:#5c3a1e;margin-bottom:12px;font-weight:500">${msg}</div>
+          <input id="customPromptInput" value="${defaultValue}" style="width:100%;padding:12px;border:1px solid #d4c4b3;border-radius:8px;font-size:14px;background:#faf7f4;margin-bottom:12px">
+          <div style="display:flex;gap:8px;justify-content:flex-end">
+            <button id="customPromptCancel" style="padding:10px 20px;border-radius:8px;font-size:14px;cursor:pointer;border:none;background:#e8ddd2;color:#5c3a1e">Cancelar</button>
+            <button id="customPromptOk" style="padding:10px 20px;border-radius:8px;font-size:14px;cursor:pointer;border:none;background:#5c3a1e;color:#fff">Aceptar</button>
+          </div>`;
+        overlay.appendChild(div);
+        document.body.appendChild(overlay);
+        const input = document.getElementById('customPromptInput');
+        input.focus(); input.select();
+        document.getElementById('customPromptOk').onclick = () => { document.body.removeChild(overlay); resolve(input.value); };
+        document.getElementById('customPromptCancel').onclick = () => { document.body.removeChild(overlay); resolve(null); };
+        input.onkeydown = (e) => { if (e.key === 'Enter') { document.body.removeChild(overlay); resolve(input.value); } if (e.key === 'Escape') { document.body.removeChild(overlay); resolve(null); } };
+      });
     }
 
     function renderCategorias(categorias) {
@@ -1598,17 +1624,25 @@
       cargarProductos();
     });
     document.getElementById('btnNuevoProducto').addEventListener('click', async () => {
-      const codigo = prompt('Código del producto (ej: 001):') || '';
-      const nombre = prompt('Nombre del producto:');
+      const codigo = (await customPrompt('Código del producto (ej: 001):')) || '';
+      const nombre = await customPrompt('Nombre del producto:');
       if (!nombre) return;
-      const categoria = prompt('Categoría (Panadería, Pastelería, Facturas, Salado, Bebidas, Otros):') || 'Otros';
-      const precio = parseFloat(prompt('Precio de venta ($):')) || 0;
+      const categoria = (await customPrompt('Categoría (Panadería, Pastelería, Facturas, Salado, Bebidas, Otros):')) || 'Otros';
+      const precio = parseFloat(await customPrompt('Precio de venta ($):')) || 0;
       await window.api.createProduct({ nombre, variante: 'Estándar', categoria, precio_venta: precio, stock_actual: 0, codigo });
       mostrarToast('Producto creado');
       abrirProductos();
       cargarProductos();
     });
 
+    document.getElementById('btnReiniciarDB').addEventListener('click', async () => {
+      const confirmacion = await customPrompt('Escribí REINICIAR para confirmar:');
+      if (confirmacion !== 'REINICIAR') return;
+      await window.api.resetDatabase();
+      mostrarToast('Base de datos reiniciada');
+      cargarProductos();
+      document.getElementById('modalProductos').classList.remove('mostrar');
+    });
 
     function mostrarApp(user) {
       usuarioActual = user;
