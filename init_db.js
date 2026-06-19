@@ -102,14 +102,17 @@ const totalProductos = db.prepare('SELECT COUNT(*) as count FROM productos').get
 
 if (totalProductos.count === 0) {
     const insertStatement = db.prepare(`
-        INSERT INTO productos (categoria, nombre, variante, unidad, precio_venta, stock_actual)
-        VALUES (?, ?, ?, ?, ?, 100) -- Les asignamos un stock inicial ficticio de 100 para testear ventas
+        INSERT INTO productos (categoria, nombre, variante, unidad, precio_venta, stock_actual, codigo)
+        VALUES (?, ?, ?, ?, ?, 100, ?)
     `);
 
     // Inserción masiva optimizada dentro de una transacción
     const poblarBD = db.transaction((productos) => {
+        let contador = 1;
         for (const prod of productos) {
-            insertStatement.run(prod.cat, prod.nom, prod.var, prod.uni, prod.precio);
+            const codigo = String(contador).padStart(3, '0');
+            insertStatement.run(prod.cat, prod.nom, prod.var, prod.uni, prod.precio, codigo);
+            contador++;
         }
     });
 
@@ -135,6 +138,12 @@ if (totalUsuarios.count === 0) {
 }
 
 // 4. MIGRACIONES (para tablas que ya existen)
+const columnasProductos = db.prepare("PRAGMA table_info(productos)").all();
+if (!columnasProductos.find(c => c.name === 'codigo')) {
+    db.prepare("ALTER TABLE productos ADD COLUMN codigo TEXT DEFAULT ''").run();
+    console.log('Migración: columna codigo agregada a productos.');
+}
+
 const columnasVentas = db.prepare("PRAGMA table_info(ventas)").all();
 if (!columnasVentas.find(c => c.name === 'usuario_id')) {
     db.prepare("ALTER TABLE ventas ADD COLUMN usuario_id INTEGER REFERENCES usuarios(id)").run();

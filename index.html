@@ -375,6 +375,8 @@
       <button id="btn-productos" class="btn-admin" style="background:rgba(255,255,255,0.15);border:none;color:#fff;padding:8px 16px;border-radius:8px;cursor:pointer;font-size:14px;font-weight:500">🏷️ Productos</button>
       <button id="btn-usuarios" class="btn-admin" style="background:rgba(255,255,255,0.15);border:none;color:#fff;padding:8px 16px;border-radius:8px;cursor:pointer;font-size:14px;font-weight:500">👥 Usuarios</button>
       <button id="btn-historial-cierres" class="btn-admin" style="background:rgba(255,255,255,0.15);border:none;color:#fff;padding:8px 16px;border-radius:8px;cursor:pointer;font-size:14px;font-weight:500">📁 Cierres</button>
+      <button id="btn-abrir-caja" style="background:rgba(255,255,255,0.15);border:none;color:#fff;padding:8px 16px;border-radius:8px;cursor:pointer;font-size:14px;font-weight:500">🔓 Abrir Caja</button>
+      <button id="btn-caja" style="background:rgba(255,255,255,0.15);border:none;color:#fff;padding:8px 16px;border-radius:8px;cursor:pointer;font-size:14px;font-weight:500">💰 Caja</button>
       <button id="btn-pendientes" style="background:rgba(255,255,255,0.15);border:none;color:#fff;padding:8px 16px;border-radius:8px;cursor:pointer;font-size:14px;font-weight:500">📌 Pendientes</button>
       <div class="total-venta-header" id="totalHeader">$ 0,00</div>
       <div class="user-info">
@@ -416,22 +418,22 @@
   </div>
 
   <div class="modal-overlay" id="modalPago">
-    <div class="modal" style="width:400px">
+    <div class="modal" style="width:420px">
       <h2>Finalizar venta</h2>
-      <div style="font-size:20px;font-weight:700;color:#5c3a1e;text-align:center;margin-bottom:16px;padding-bottom:12px;border-bottom:1px solid #e0d6ca" id="modalPagoTotal"></div>
+      <div style="font-size:24px;font-weight:700;color:#5c3a1e;text-align:center;margin-bottom:16px;padding-bottom:12px;border-bottom:1px solid #e0d6ca" id="modalPagoTotal"></div>
 
-      <div style="display:flex;flex-direction:column;gap:8px;margin-bottom:12px">
-        <div style="display:flex;align-items:center;gap:8px">
-          <label style="min-width:115px;font-size:13px;font-weight:600;color:#5c3a1e">Efectivo</label>
-          <input class="pago-input" id="pagoEfectivo" type="number" min="0" step="any" value="0" style="flex:1">
+      <div style="display:flex;flex-direction:column;gap:12px;margin-bottom:16px">
+        <div style="display:flex;flex-direction:column;gap:4px">
+          <label style="font-size:14px;font-weight:600;color:#5c3a1e">💵 Efectivo</label>
+          <input class="pago-input" id="pagoEfectivo" type="number" min="0" step="any" value="0" style="width:100%;padding:16px;border:2px solid #d4c4b3;border-radius:10px;font-size:24px;font-weight:700;background:#fff">
         </div>
-        <div style="display:flex;align-items:center;gap:8px">
-          <label style="min-width:115px;font-size:13px;font-weight:600;color:#5c3a1e">Mercado Pago</label>
-          <input class="pago-input" id="pagoMp" type="number" min="0" step="any" value="0" style="flex:1">
+        <div style="display:flex;flex-direction:column;gap:4px">
+          <label style="font-size:14px;font-weight:600;color:#1a6a9e">📱 Mercado Pago</label>
+          <input class="pago-input" id="pagoMp" type="number" min="0" step="any" value="0" style="width:100%;padding:16px;border:2px solid #b8d4e8;border-radius:10px;font-size:24px;font-weight:700;background:#f0f7ff">
         </div>
-        <div style="display:flex;align-items:center;gap:8px">
-          <label style="min-width:115px;font-size:13px;font-weight:600;color:#5c3a1e">Transferencia</label>
-          <input class="pago-input" id="pagoTransferencia" type="number" min="0" step="any" value="0" style="flex:1">
+        <div style="display:flex;flex-direction:column;gap:4px">
+          <label style="font-size:14px;font-weight:600;color:#8a6a00">🏦 Transferencia</label>
+          <input class="pago-input" id="pagoTransferencia" type="number" min="0" step="any" value="0" style="width:100%;padding:16px;border:2px solid #e0d0a8;border-radius:10px;font-size:24px;font-weight:700;background:#fff8e8">
         </div>
       </div>
 
@@ -490,6 +492,48 @@
     </div>
   </div>
 
+  <div class="modal-overlay" id="modalCaja">
+    <div class="modal" style="width:480px;max-height:85vh;overflow-y:auto">
+      <h2>💰 Movimientos de Caja</h2>
+      <div id="cajaZonaAgregar" style="display:flex;gap:8px;margin-bottom:16px;padding-bottom:16px;border-bottom:1px solid #e0d6ca;flex-wrap:wrap;align-items:flex-end">
+        <div style="flex:1;min-width:120px">
+          <label style="font-size:12px;font-weight:500;color:#5c3a1e;display:block;margin-bottom:2px">Tipo</label>
+          <select id="cajaTipo" style="width:100%;padding:8px;border:1px solid #d4c4b3;border-radius:6px;font-size:13px;background:#faf7f4">
+            <option value="ingreso">Ingreso</option>
+            <option value="egreso">Egreso</option>
+          </select>
+        </div>
+        <div style="flex:1;min-width:100px">
+          <label style="font-size:12px;font-weight:500;color:#5c3a1e;display:block;margin-bottom:2px">Monto ($)</label>
+          <input id="cajaMonto" type="number" min="0" step="any" style="width:100%;padding:8px;border:1px solid #d4c4b3;border-radius:6px;font-size:13px;background:#faf7f4">
+        </div>
+        <div style="flex:2;min-width:150px">
+          <label style="font-size:12px;font-weight:500;color:#5c3a1e;display:block;margin-bottom:2px">Concepto</label>
+          <input id="cajaConcepto" style="width:100%;padding:8px;border:1px solid #d4c4b3;border-radius:6px;font-size:13px;background:#faf7f4" placeholder="Ej: retiro de efectivo, gasto de limpieza...">
+        </div>
+        <button id="btnAgregarMovimiento" style="background:#5c3a1e;color:#fff;border:none;padding:8px 18px;border-radius:6px;cursor:pointer;font-weight:600;font-size:13px;height:36px;white-space:nowrap">Agregar</button>
+      </div>
+      <div id="cajaMovimientosList"></div>
+      <div id="cajaTotales" style="display:flex;gap:10px;margin-top:12px;padding-top:12px;border-top:1px solid #e0d6ca">
+        <div style="flex:1;background:#e4f0e0;border-radius:8px;padding:10px;text-align:center">
+          <div style="font-size:11px;color:#2d6a1e">Ingresos</div>
+          <div id="cajaTotalIngresos" style="font-size:17px;font-weight:700;color:#2d6a1e">$ 0</div>
+        </div>
+        <div style="flex:1;background:#fde0e0;border-radius:8px;padding:10px;text-align:center">
+          <div style="font-size:11px;color:#b33a3a">Egresos</div>
+          <div id="cajaTotalEgresos" style="font-size:17px;font-weight:700;color:#b33a3a">$ 0</div>
+        </div>
+        <div style="flex:1;background:#e8ddd2;border-radius:8px;padding:10px;text-align:center">
+          <div style="font-size:11px;color:#5c3a1e">Saldo</div>
+          <div id="cajaSaldo" style="font-size:17px;font-weight:700;color:#5c3a1e">$ 0</div>
+        </div>
+      </div>
+      <div class="modal-botones" style="margin-top:12px">
+        <button class="btn-cancel" id="btnCerrarCaja">Cerrar</button>
+      </div>
+    </div>
+  </div>
+
   <div class="modal-overlay" id="modalHistorialCierres">
     <div class="modal" style="width:560px;max-height:85vh;overflow-y:auto">
       <h2>Historial de Cierres</h2>
@@ -501,7 +545,7 @@
   </div>
 
   <div class="modal-overlay" id="modalProductos">
-    <div class="modal" style="width:600px;max-height:85vh;overflow-y:auto">
+    <div class="modal" style="width:800px;max-width:95vw;max-height:85vh;overflow-y:auto">
       <h2>Productos <button id="btnNuevoProducto" style="background:#2d6a1e;color:#fff;border:none;padding:4px 12px;border-radius:6px;cursor:pointer;font-size:13px;font-weight:500;margin-left:12px;vertical-align:middle">+ Nuevo</button></h2>
       <div id="productosList"></div>
       <div class="modal-botones" style="margin-top:12px">
@@ -510,8 +554,20 @@
     </div>
   </div>
 
+  <div class="modal-overlay" id="modalApertura">
+    <div class="modal" style="width:380px">
+      <h2>🔓 Abrir Caja</h2>
+      <label style="font-size:14px;color:#5c3a1e;display:block;margin-bottom:6px;font-weight:600">Saldo inicial en caja ($)</label>
+      <input id="aperturaSaldo" type="number" min="0" step="any" value="0" style="width:100%;padding:14px 16px;border:2px solid #d4c4b3;border-radius:10px;font-size:22px;font-weight:700;background:#fff;margin-bottom:16px">
+      <div class="modal-botones">
+        <button class="btn-cancel" id="btnCerrarApertura">Cancelar</button>
+        <button class="btn-confirm" id="btnConfirmarApertura">Abrir Caja</button>
+      </div>
+    </div>
+  </div>
+
   <div class="modal-overlay" id="modalCierre">
-    <div class="modal" style="width:520px;max-height:85vh;overflow-y:auto">
+    <div class="modal" style="width:760px;max-width:95vw;max-height:90vh;overflow-y:auto">
       <h2>Cierre de Jornada</h2>
       <div id="cierreContent"></div>
       <div class="modal-botones" style="margin-top:12px" id="cierreButtons">
@@ -556,6 +612,21 @@
       setTimeout(() => $toast.classList.remove('mostrar'), 2500);
     }
 
+    function mostrarAlertaCaja(msg) {
+      const overlay = document.createElement('div');
+      overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.5);display:flex;align-items:center;justify-content:center;z-index:300';
+      overlay.innerHTML = `
+        <div style="background:#fff;border-radius:16px;padding:32px;width:380px;max-width:90vw;text-align:center;box-shadow:0 8px 30px rgba(0,0,0,0.25)">
+          <div style="font-size:48px;margin-bottom:12px">⚠️</div>
+          <h2 style="color:#b33a3a;margin-bottom:8px;font-size:18px">Caja no disponible</h2>
+          <p style="color:#5c3a1e;font-size:15px;margin-bottom:20px;line-height:1.5">${msg}</p>
+          <button id="btnCerrarAlertaCaja" style="background:#5c3a1e;border:none;color:#fff;padding:12px 32px;border-radius:10px;font-size:15px;font-weight:600;cursor:pointer">Entendido</button>
+        </div>`;
+      document.body.appendChild(overlay);
+      overlay.querySelector('#btnCerrarAlertaCaja').addEventListener('click', () => overlay.remove());
+      overlay.addEventListener('click', (e) => { if (e.target === overlay) overlay.remove(); });
+    }
+
     function formatear(n) {
       return '$ ' + n.toLocaleString('es-AR', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
     }
@@ -588,7 +659,7 @@
     function renderProductos(productos) {
       const filtro = $buscador.value.toLowerCase();
       const filtrados = productos.filter(p =>
-        p.nombre.toLowerCase().includes(filtro) || p.variante.toLowerCase().includes(filtro)
+        p.nombre.toLowerCase().includes(filtro) || p.variante.toLowerCase().includes(filtro) || (p.codigo && p.codigo.toLowerCase().includes(filtro))
       );
 
       $grid.innerHTML = filtrados.map(p => {
@@ -599,7 +670,8 @@
         else if (stock <= 10) stockCls = 'stock-medio';
         const stockTxt = stock === 0 ? 'Sin stock' : `${stock} unit`;
         return `
-        <div class="producto-card" data-id="${p.id}" data-nombre="${p.nombre}" data-variante="${p.variante}" data-precio="${p.precio_venta}" data-stock="${stock}">
+        <div class="producto-card" data-id="${p.id}" data-nombre="${p.nombre}" data-variante="${p.variante}" data-precio="${p.precio_venta}" data-stock="${stock}" data-codigo="${p.codigo || ''}">
+          ${p.codigo ? `<div style="font-size:11px;color:#8a7a6a;font-weight:600;margin-bottom:2px">${p.codigo}</div>` : ''}
           <div class="nombre">${p.nombre}</div>
           <div class="variante">${p.variante}</div>
           <div class="precio">${formatear(p.precio_venta)}</div>
@@ -613,12 +685,13 @@
           const nombre = card.dataset.nombre;
           const variante = card.dataset.variante;
           const precio = parseFloat(card.dataset.precio);
-          agregarAlCarrito(id, nombre, variante, precio);
+          const codigo = card.dataset.codigo || '';
+          agregarAlCarrito(id, nombre, variante, precio, codigo);
         });
       });
     }
 
-    function agregarAlCarrito(id, nombre, variante, precio) {
+    function agregarAlCarrito(id, nombre, variante, precio, codigo) {
       const existente = carrito.find(i => i.producto_id === id);
       const enCarrito = existente ? existente.cantidad : 0;
       const stockDisponible = stockMap.get(id) ?? 0;
@@ -632,7 +705,7 @@
         existente.cantidad += 1;
         existente.subtotal = existente.cantidad * existente.precio_unitario;
       } else {
-        carrito.push({ producto_id: id, nombre, variante, cantidad: 1, precio_unitario: precio, subtotal: precio });
+        carrito.push({ producto_id: id, nombre, variante, cantidad: 1, precio_unitario: precio, subtotal: precio, codigo });
       }
       renderCarrito();
     }
@@ -665,7 +738,7 @@
         return `
         <div class="item-carrito">
           <div class="info">
-            <div class="nombre-item">${item.nombre}</div>
+            <div class="nombre-item">${item.codigo ? `<span style="color:#8a7a6a;font-size:11px;font-weight:600;margin-right:4px">${item.codigo}</span>` : ''}${item.nombre}</div>
             <div class="detalle-item">${item.variante} · ${formatear(item.precio_unitario)} c/u</div>
             <div style="font-size:11px;color:${stockOk ? '#8a7a6a' : '#b33a3a'};margin-top:2px">${stockOk ? `queda ${stockRestante} unit` : 'stock insuficiente'}</div>
           </div>
@@ -781,6 +854,11 @@
           usuario_nombre: usuarioActual.username,
         });
 
+        if (result.error) {
+          mostrarAlertaCaja(result.error);
+          return;
+        }
+
         let msg = `Venta #${result.ventaId} registrada — ${formatear(total)}`;
         if (cambio > 0) msg += ` (cambio: ${formatear(cambio)})`;
         if (suma < total) msg += ` — fiado: ${formatear(total - suma)}`;
@@ -800,9 +878,13 @@
 
 
     async function abrirCierre() {
+      try {
       const data = await window.api.getCierre({ usuario_id: usuarioActual.id });
       const contenedor = document.getElementById('cierreContent');
       const btnConfirmar = document.getElementById('btnConfirmarCierre');
+
+      const mpEsperado = data.porPago['Mercado Pago'] || 0;
+      const transferenciaEsperado = data.porPago['Transferencia'] || 0;
 
       let html = `
         <div style="text-align:center;margin-bottom:16px;padding-bottom:16px;border-bottom:1px solid #e0d6ca">
@@ -810,59 +892,226 @@
           <div style="font-size:13px;color:#8a7a6a">${new Date().toLocaleDateString('es-AR', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</div>
         </div>`;
 
-      if (data.cantidad === 0) {
-        html += '<div style="text-align:center;color:#8a7a6a;padding:20px">Sin ventas abiertas hoy</div>';
+      if (data.yaCerrado) {
+        html += '<div style="text-align:center;color:#b33a3a;padding:10px;margin-bottom:12px;background:#fde0e0;border-radius:8px;font-size:13px">⚠️ Ya cerraste esta jornada</div>';
+        btnConfirmar.style.display = 'none';
+      } else if (data.cantidad === 0 && data.totalIngresos === 0 && data.totalEgresos === 0) {
+        html += '<div style="text-align:center;color:#8a7a6a;padding:20px">Sin actividad hoy</div>';
         btnConfirmar.style.display = 'none';
       } else {
-        html += `<div style="display:flex;gap:12px;margin-bottom:16px">`;
-        const colores = { Efectivo: '#2d6a1e', 'Mercado Pago': '#1a6a9e', Débito: '#8a6a00' };
-        for (const [metodo, monto] of Object.entries(data.porPago)) {
-          html += `
-            <div style="flex:1;background:#faf7f4;border-radius:10px;padding:12px;text-align:center">
-              <div style="font-size:11px;color:#8a7a6a">${metodo}</div>
-              <div style="font-size:16px;font-weight:700;color:${colores[metodo] || '#2d2a24'}">${formatear(monto)}</div>
-            </div>`;
-        }
-        html += `</div>
-          <div style="display:flex;justify-content:space-between;background:#5c3a1e;color:#fff;border-radius:10px;padding:12px 16px;margin-bottom:16px">
-            <span style="font-weight:600">Total del turno</span>
-            <span style="font-weight:700;font-size:18px">${formatear(data.total)}</span>
+        html += `<div style="display:flex;gap:12px;margin-bottom:16px;flex-wrap:wrap">
+          <div style="flex:1;min-width:240px;background:#faf7f4;border-radius:12px;padding:20px;border:2px solid #d4c4b3">
+            <div style="font-size:16px;font-weight:700;color:#2d6a1e;margin-bottom:12px">💵 Efectivo</div>
+            <label style="font-size:14px;color:#5c3a1e;display:block;margin-bottom:6px;font-weight:600">Contado</label>
+            <input id="cierreEfectivoContado" type="number" min="0" step="any" style="width:100%;padding:14px 16px;border:2px solid #d4c4b3;border-radius:10px;font-size:22px;font-weight:700;background:#fff;margin-bottom:14px">
+            <label style="font-size:14px;color:#5c3a1e;display:block;margin-bottom:6px;font-weight:600">Retiro</label>
+            <input id="cierreEfectivoRetiro" type="number" min="0" step="any" style="width:100%;padding:14px 16px;border:2px solid #d4c4b3;border-radius:10px;font-size:20px;background:#fff;margin-bottom:14px">
+            <label style="font-size:14px;color:#5c3a1e;display:block;margin-bottom:6px;font-weight:600">Dejado para siguiente turno</label>
+            <input id="cierreEfectivoDejado" type="number" min="0" step="any" style="width:100%;padding:14px 16px;border:2px solid #d4c4b3;border-radius:10px;font-size:20px;background:#fff">
+            <div id="cierreEfectivoValidacion" style="font-size:13px;margin-top:10px;text-align:center;color:#8a7a6a"></div>
           </div>
-          <div style="font-size:13px;color:#8a7a6a;margin-bottom:8px">${data.cantidad} venta(s)</div>`;
-        html += data.ventas.map(v => {
-          const fecha = v.fecha_hora ? v.fecha_hora.replace('T', ' ').slice(0, 16) : '';
-          return `
-            <div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid #f0e8e0;font-size:13px">
-              <span style="color:#8a7a6a">${fecha}</span>
-              <span style="font-weight:500">${formatear(v.total)}</span>
-            </div>`;
-        }).join('');
+          <div style="flex:1;min-width:200px;background:#f0f7ff;border-radius:12px;padding:18px;border:2px solid #b8d4e8">
+            <div style="font-size:15px;font-weight:700;color:#1a6a9e;margin-bottom:10px">📱 Mercado Pago</div>
+            <div style="font-size:28px;font-weight:700;color:#1a6a9e">${formatear(mpEsperado)}</div>
+            <input type="hidden" id="cierreTotalMp" value="${mpEsperado}">
+          </div>
+          <div style="flex:1;min-width:200px;background:#fff8e8;border-radius:12px;padding:18px;border:2px solid #e0d0a8">
+            <div style="font-size:15px;font-weight:700;color:#8a6a00;margin-bottom:10px">🏦 Transferencia</div>
+            <div style="font-size:28px;font-weight:700;color:#8a6a00">${formatear(transferenciaEsperado)}</div>
+            <input type="hidden" id="cierreTotalTransferencia" value="${transferenciaEsperado}">
+          </div>
+        </div>`;
+
+        if (data.cantidad > 0) {
+          html += `<div style="font-size:13px;color:#8a7a6a;margin-bottom:6px;font-weight:500">📋 ${data.cantidad} venta(s) registradas</div>`;
+        }
+
         btnConfirmar.style.display = '';
       }
 
       contenedor.innerHTML = html;
+
+      const $cajaContado = document.getElementById('cierreEfectivoContado');
+      if ($cajaContado) {
+        const validarEfectivo = () => {
+          const contado = parseFloat($cajaContado.value) || 0;
+          const retiro = parseFloat(document.getElementById('cierreEfectivoRetiro').value) || 0;
+          const dejado = parseFloat(document.getElementById('cierreEfectivoDejado').value) || 0;
+          const el = document.getElementById('cierreEfectivoValidacion');
+          if (contado > 0 && (retiro > 0 || dejado > 0)) {
+            if (Math.abs(contado - (retiro + dejado)) <= 0.01) {
+              el.textContent = '✅ Cuadra: retiro + dejado = contado';
+              el.style.color = '#2d6a1e';
+            } else {
+              el.textContent = `⚠️ Debe cumplir: retiro + dejado = ${formatear(contado)} (actual: ${formatear(retiro + dejado)})`;
+              el.style.color = '#b33a3a';
+            }
+          } else {
+            el.textContent = '';
+          }
+        };
+        $cajaContado.addEventListener('input', validarEfectivo);
+        document.getElementById('cierreEfectivoRetiro').addEventListener('input', validarEfectivo);
+        document.getElementById('cierreEfectivoDejado').addEventListener('input', validarEfectivo);
+      }
+
       document.getElementById('modalCierre').classList.add('mostrar');
+      } catch (err) {
+        mostrarToast('Error al cargar cierre: ' + err.message);
+        console.error(err);
+      }
     }
 
     document.getElementById('btn-cierre').addEventListener('click', abrirCierre);
     document.getElementById('btnCerrarCierre').addEventListener('click', () => {
       document.getElementById('modalCierre').classList.remove('mostrar');
     });
-    document.getElementById('btnConfirmarCierre').addEventListener('click', async () => {
-      const data = await window.api.getCierre({ usuario_id: usuarioActual.id });
-      if (data.cantidad === 0) return;
 
-      await window.api.confirmarCierre({
-        usuario_id: usuarioActual.id,
-        total: data.total,
-        cantidad: data.cantidad,
-        por_pago: data.porPago,
-      });
+    async function abrirCajaInicial() {
+      try {
+      document.getElementById('aperturaSaldo').value = '';
+      document.getElementById('modalApertura').classList.add('mostrar');
+      } catch (err) {
+        mostrarToast('Error: ' + err.message);
+        console.error(err);
+      }
+    }
+
+    document.getElementById('btn-abrir-caja').addEventListener('click', abrirCajaInicial);
+    document.getElementById('btnCerrarApertura').addEventListener('click', () => {
+      document.getElementById('modalApertura').classList.remove('mostrar');
+    });
+    document.getElementById('btnConfirmarApertura').addEventListener('click', async () => {
+      try {
+      const saldo = parseFloat(document.getElementById('aperturaSaldo').value) || 0;
+      if (saldo < 0) { mostrarToast('El saldo no puede ser negativo'); return; }
+      await window.api.abrirCaja({ usuario_id: usuarioActual.id, saldo_inicial: saldo });
+      document.getElementById('modalApertura').classList.remove('mostrar');
+      mostrarToast('🔓 Caja abierta — saldo inicial: ' + formatear(saldo));
+      document.getElementById('btn-abrir-caja').style.display = 'none';
+      } catch (err) {
+        mostrarToast('Error: ' + err.message);
+        console.error(err);
+      }
+    });
+    document.getElementById('btnConfirmarCierre').addEventListener('click', async () => {
+      try {
+      const data = await window.api.getCierre({ usuario_id: usuarioActual.id });
+      if (data.cantidad === 0 && data.totalIngresos === 0 && data.totalEgresos === 0) {
+        mostrarToast('Sin actividad para cerrar');
+        return;
+      }
+
+      const efectivoContado = parseFloat(document.getElementById('cierreEfectivoContado')?.value) || 0;
+      const efectivoRetiro = parseFloat(document.getElementById('cierreEfectivoRetiro')?.value) || 0;
+      const efectivoDejado = parseFloat(document.getElementById('cierreEfectivoDejado')?.value) || 0;
+      const totalMp = parseFloat(document.getElementById('cierreTotalMp')?.value) || 0;
+      const totalTransferencia = parseFloat(document.getElementById('cierreTotalTransferencia')?.value) || 0;
+
+      const efectivoVentasCobros = data.porPago['Efectivo'] || 0;
+      const efectivoEsperado = data.saldoInicial + efectivoVentasCobros + data.totalIngresos - data.totalEgresos;
+      const diferencia = efectivoContado - efectivoEsperado;
+
+      const confirmar = await mostrarConfirmacionCierre(diferencia, data, efectivoContado, efectivoRetiro, efectivoDejado, totalMp, totalTransferencia, efectivoEsperado);
+      if (!confirmar) return;
 
       document.getElementById('modalCierre').classList.remove('mostrar');
       mostrarToast('Cierre confirmado — turno finalizado');
+      document.getElementById('btn-abrir-caja').style.display = '';
       cargarTodayBar();
+      } catch (err) {
+        mostrarToast('Error: ' + err.message);
+        console.error(err);
+      }
     });
+
+    function mostrarConfirmacionCierre(diferencia, data, efectivoContado, efectivoRetiro, efectivoDejado, totalMp, totalTransferencia, efectivoEsperado) {
+      return new Promise((resolve) => {
+        // Paso 1: confirmación simple
+        const overlay = document.createElement('div');
+        overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.5);display:flex;align-items:center;justify-content:center;z-index:200';
+        overlay.innerHTML = `
+          <div style="background:#fff;border-radius:16px;padding:28px;width:360px;max-width:90vw;text-align:center;box-shadow:0 8px 30px rgba(0,0,0,0.2)">
+            <div style="font-size:40px;margin-bottom:12px">🔒</div>
+            <h2 style="color:#5c3a1e;margin-bottom:8px;font-size:20px">¿Confirmar cierre?</h2>
+            <p style="color:#8a7a6a;font-size:14px;margin-bottom:20px">Una vez cerrado no podrás modificar las ventas del turno.</p>
+            <div style="display:flex;gap:8px;justify-content:center">
+              <button id="btnCancelarConfirm" style="background:#e8ddd2;border:none;color:#5c3a1e;padding:12px 24px;border-radius:10px;font-size:15px;font-weight:600;cursor:pointer">Cancelar</button>
+              <button id="btnAceptarConfirm" style="background:#5c3a1e;border:none;color:#fff;padding:12px 24px;border-radius:10px;font-size:15px;font-weight:600;cursor:pointer">Sí, confirmar</button>
+            </div>
+          </div>`;
+        document.body.appendChild(overlay);
+
+        overlay.querySelector('#btnCancelarConfirm').addEventListener('click', () => { overlay.remove(); resolve(false); });
+
+        overlay.querySelector('#btnAceptarConfirm').addEventListener('click', async () => {
+          overlay.remove();
+
+          try {
+            // Guardar cierre
+            const cierreResult = await window.api.confirmarCierre({
+              usuario_id: usuarioActual.id,
+              total: data.total,
+              cantidad: data.cantidad,
+              por_pago: data.porPago,
+              por_pago_ventas: data.porPagoPagos,
+              por_pago_cobros: data.porPagoCobros,
+              efectivo_contado: efectivoContado,
+              efectivo_retiro: efectivoRetiro,
+              efectivo_dejado: efectivoDejado,
+              total_mp: totalMp,
+              total_transferencia: totalTransferencia,
+              saldo_inicial: data.saldoInicial,
+              apertura_id: data.aperturaId,
+            });
+            if (cierreResult.error) {
+              mostrarAlertaCaja(cierreResult.error);
+              resolve(false);
+              return;
+            }
+          } catch (err) {
+            mostrarToast('Error al guardar cierre: ' + err.message);
+            console.error(err);
+            resolve(false);
+            return;
+          }
+
+          // Paso 2: mostrar resultado
+          const esExacto = diferencia === 0;
+          const esSobrante = diferencia > 0;
+          const overlay2 = document.createElement('div');
+          overlay2.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.5);display:flex;align-items:center;justify-content:center;z-index:200';
+          overlay2.innerHTML = `
+            <div style="background:#fff;border-radius:16px;padding:28px;width:420px;max-width:90vw;text-align:center;box-shadow:0 8px 30px rgba(0,0,0,0.2)">
+              <div style="font-size:44px;margin-bottom:12px">${esExacto ? '✅' : esSobrante ? '💰' : '⚠️'}</div>
+              <h2 style="color:#5c3a1e;margin-bottom:12px;font-size:20px">${esExacto ? 'Cierre Exacto' : esSobrante ? 'Sobra Efectivo' : 'Falta Efectivo'}</h2>
+              <div style="background:${!esExacto && !esSobrante ? '#fde0e0' : '#e4f0e0'};border-radius:10px;padding:14px;margin-bottom:16px;text-align:left;line-height:2">
+                <div style="display:flex;justify-content:space-between">
+                  <span style="color:#5c3a1e">Esperado</span>
+                  <span style="font-weight:600">${formatear(efectivoEsperado)}</span>
+                </div>
+                <div style="display:flex;justify-content:space-between">
+                  <span style="color:#5c3a1e">Contado</span>
+                  <span style="font-weight:600">${formatear(efectivoContado)}</span>
+                </div>
+                ${esExacto ? `<div style="display:flex;justify-content:space-between;color:#2d6a1e;font-weight:600;border-top:1px solid rgba(45,106,30,0.2);padding-top:4px;margin-top:4px">
+                  <span>✅ Exacto</span>
+                  <span>—</span>
+                </div>` : esSobrante ? `<div style="display:flex;justify-content:space-between;color:#2d6a1e;font-weight:700;border-top:1px solid rgba(45,106,30,0.2);padding-top:4px;margin-top:4px">
+                  <span>⬆ Sobrante</span>
+                  <span>${formatear(diferencia)}</span>
+                </div>` : `<div style="display:flex;justify-content:space-between;color:#b33a3a;font-weight:700;border-top:1px solid rgba(179,58,58,0.2);padding-top:4px;margin-top:4px">
+                  <span>⬇ Faltante</span>
+                  <span>${formatear(Math.abs(diferencia))}</span>
+                </div>`}
+              </div>
+              <button id="btnCerrarResultado" style="background:#5c3a1e;border:none;color:#fff;padding:12px 32px;border-radius:10px;font-size:15px;font-weight:600;cursor:pointer">Aceptar</button>
+            </div>`;
+          document.body.appendChild(overlay2);
+          overlay2.querySelector('#btnCerrarResultado').addEventListener('click', () => { overlay2.remove(); resolve(true); });
+        });
+      });
+    }
 
 
     async function abrirHistorial() {
@@ -988,17 +1237,65 @@
 
       contenedor.innerHTML = cierres.map(c => {
         const porPago = JSON.parse(c.por_pago || '{}');
-        const pagos = Object.entries(porPago).map(([m, t]) =>
-          `<span style="font-size:11px;color:#8a7a6a;margin-right:8px">${m}: ${formatear(t)}</span>`
-        ).join('');
+        const esDetallado = porPago['Efectivo'] && typeof porPago['Efectivo'] === 'object';
+
+        let pagosHtml = '';
+        if (esDetallado) {
+          pagosHtml = Object.entries(porPago).map(([m, d]) => {
+            if (d.cobros > 0) {
+              return `<div style="font-size:12px;line-height:1.6">
+                <span style="font-weight:500">${m}:</span> ${formatear(d.total)}
+                <span style="color:#8a7a6a;font-size:11px">(ventas: ${formatear(d.ventas)}</span>
+                <span style="color:#b33a3a;font-size:11px"> pendiente: ${formatear(d.cobros)})</span>
+              </div>`;
+            }
+            return `<div style="font-size:12px"><span style="font-weight:500">${m}:</span> ${formatear(d.total)}</div>`;
+          }).join('');
+        } else {
+          pagosHtml = Object.entries(porPago).map(([m, t]) =>
+            `<span style="font-size:11px;color:#8a7a6a;margin-right:8px">${m}: ${formatear(t)}</span>`
+          ).join('');
+        }
+
+        const totalEf = esDetallado ? (porPago['Efectivo']?.total || 0) : (porPago['Efectivo'] || 0);
+        const efectivoEsperado = (c.saldo_inicial || 0) + totalEf + (c.totalIngresos || 0) - (c.totalEgresos || 0);
+        const difEfectivo = c.efectivo_contado - efectivoEsperado;
+        let diffCls, diffTxt;
+        if (difEfectivo === 0) {
+          diffCls = '#2d6a1e';
+          diffTxt = '✅ Exacto';
+        } else if (difEfectivo > 0) {
+          diffCls = '#2d6a1e';
+          diffTxt = `⬆ Sobró ${formatear(difEfectivo)}`;
+        } else {
+          diffCls = '#b33a3a';
+          diffTxt = `⬇ Faltan ${formatear(Math.abs(difEfectivo))}`;
+        }
+
         return `
-          <div style="padding:10px 0;border-bottom:1px solid #e0d6ca">
-            <div style="display:flex;justify-content:space-between">
+          <div style="padding:10px 0;border-bottom:1px solid #e0d6ca;font-size:13px">
+            <div style="display:flex;justify-content:space-between;align-items:center">
               <span style="font-weight:600">${c.username}</span>
-              <span style="font-weight:700">${formatear(c.total)}</span>
+              <span style="font-weight:700;font-size:15px">${formatear(c.total)}</span>
             </div>
             <div style="font-size:12px;color:#8a7a6a;margin-top:2px">${c.fecha} — ${c.cantidad} venta(s)</div>
-            <div style="margin-top:4px">${pagos}</div>
+            <div style="margin-top:4px">${pagosHtml}</div>
+            ${c.saldo_inicial > 0 ? `<div style="font-size:12px;color:#5c3a1e;margin-top:2px">💰 Saldo inicial: ${formatear(c.saldo_inicial)}</div>` : ''}
+            ${c.efectivo_contado > 0 || c.total_mp > 0 || c.total_transferencia > 0 ? `
+            <div style="display:flex;gap:8px;margin-top:6px;padding-top:6px;border-top:1px solid #f0e8e0;font-size:12px;flex-wrap:wrap">
+              <span style="color:#2d6a1e">💵 Efectivo contado: ${formatear(c.efectivo_contado || 0)} <span style="color:${diffCls};font-weight:600">${diffTxt}</span></span>
+              ${c.efectivo_retiro > 0 ? `<span style="color:#8a7a6a">Retiro: ${formatear(c.efectivo_retiro)}</span>` : ''}
+              ${c.efectivo_dejado > 0 ? `<span style="color:#8a7a6a">Dejado: ${formatear(c.efectivo_dejado)}</span>` : ''}
+              <span style="color:#1a6a9e">📱 MP: ${formatear(c.total_mp || 0)}</span>
+              <span style="color:#8a6a00">🏦 Transf: ${formatear(c.total_transferencia || 0)}</span>
+            </div>` : ''}
+            ${(c.totalIngresos > 0 || c.totalEgresos > 0) ? `
+            <div style="margin-top:4px;padding-top:4px;border-top:1px solid #f0e8e0;font-size:12px">
+              <span style="font-weight:500;color:#5c3a1e">📦 Movimientos de caja:</span>
+              ${c.totalIngresos > 0 ? `<span style="color:#2d6a1e;margin-left:4px">+${formatear(c.totalIngresos)}</span>` : ''}
+              ${c.totalEgresos > 0 ? `<span style="color:#b33a3a;margin-left:4px">-${formatear(c.totalEgresos)}</span>` : ''}
+              <span style="color:#8a7a6a;margin-left:4px">(neto: ${formatear(c.totalIngresos - c.totalEgresos)})</span>
+            </div>` : ''}
           </div>`;
       }).join('');
 
@@ -1082,6 +1379,100 @@
       document.getElementById('modalHistorial').classList.remove('mostrar');
     });
 
+    async function abrirCaja() {
+      const [movimientos, yaCerrado] = await Promise.all([
+        window.api.getMovimientosCaja({ usuario_id: usuarioActual.id }),
+        window.api.getEstaCerrado(usuarioActual.id),
+      ]);
+
+      const zonaAgregar = document.getElementById('cajaZonaAgregar');
+
+      if (yaCerrado) {
+        zonaAgregar.style.display = 'none';
+      } else {
+        zonaAgregar.style.display = '';
+      }
+
+      renderCajaMovimientos(movimientos, yaCerrado);
+      document.getElementById('modalCaja').classList.add('mostrar');
+    }
+
+    function renderCajaMovimientos(movimientos, yaCerrado) {
+      const contenedor = document.getElementById('cajaMovimientosList');
+
+      if (yaCerrado) {
+        contenedor.innerHTML = '<div style="text-align:center;color:#8a7a6a;padding:20px;font-size:14px">🔒 Turno cerrado — movimientos finalizados</div>';
+        document.getElementById('cajaTotalIngresos').textContent = formatear(0);
+        document.getElementById('cajaTotalEgresos').textContent = formatear(0);
+        document.getElementById('cajaSaldo').textContent = formatear(0);
+        return;
+      }
+
+      if (!movimientos || movimientos.length === 0) {
+        contenedor.innerHTML = '<div style="text-align:center;color:#8a7a6a;padding:20px;font-size:14px">Sin movimientos hoy</div>';
+      } else {
+        contenedor.innerHTML = movimientos.map(m => {
+          const esIngreso = m.tipo === 'ingreso';
+          return `
+            <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid #f0e8e0;font-size:13px">
+              <div style="flex:1">
+                <div style="display:flex;align-items:center;gap:6px">
+                  <span style="font-weight:600;color:${esIngreso ? '#2d6a1e' : '#b33a3a'}">${esIngreso ? '➕' : '➖'} ${esIngreso ? 'Ingreso' : 'Egreso'}</span>
+                  <span style="color:#8a7a6a;font-size:11px">${m.fecha ? m.fecha.replace('T', ' ').slice(0, 16) : ''}</span>
+                </div>
+                <div style="color:#5c3a1e;margin-top:2px">${m.concepto}</div>
+              </div>
+              <div style="display:flex;align-items:center;gap:8px">
+                <span style="font-weight:700;font-size:15px;color:${esIngreso ? '#2d6a1e' : '#b33a3a'}">${esIngreso ? '+' : '-'} ${formatear(m.monto)}</span>
+                <button class="btn-del-movimiento" data-id="${m.id}" style="background:none;border:none;color:#b33a3a;cursor:pointer;font-size:16px;padding:2px;line-height:1" title="Eliminar">×</button>
+              </div>
+            </div>`;
+        }).join('');
+
+        contenedor.querySelectorAll('.btn-del-movimiento').forEach(btn => {
+          btn.addEventListener('click', async () => {
+            if (!confirm('¿Eliminar este movimiento?')) return;
+            await window.api.deleteMovimientoCaja(parseInt(btn.dataset.id));
+            const movs = await window.api.getMovimientosCaja({ usuario_id: usuarioActual.id });
+            renderCajaMovimientos(movs);
+          });
+        });
+      }
+
+      const totalIngresos = (movimientos || []).filter(m => m.tipo === 'ingreso').reduce((s, m) => s + m.monto, 0);
+      const totalEgresos = (movimientos || []).filter(m => m.tipo === 'egreso').reduce((s, m) => s + m.monto, 0);
+      document.getElementById('cajaTotalIngresos').textContent = formatear(totalIngresos);
+      document.getElementById('cajaTotalEgresos').textContent = formatear(totalEgresos);
+      document.getElementById('cajaSaldo').textContent = formatear(totalIngresos - totalEgresos);
+    }
+
+    document.getElementById('btn-caja').addEventListener('click', abrirCaja);
+    document.getElementById('btnCerrarCaja').addEventListener('click', () => {
+      document.getElementById('modalCaja').classList.remove('mostrar');
+    });
+
+    document.getElementById('btnAgregarMovimiento').addEventListener('click', async () => {
+      const tipo = document.getElementById('cajaTipo').value;
+      const monto = parseFloat(document.getElementById('cajaMonto').value);
+      const concepto = document.getElementById('cajaConcepto').value.trim();
+
+      if (!monto || monto <= 0) { mostrarToast('Ingresá un monto válido'); return; }
+      if (!concepto) { mostrarToast('Ingresá un concepto'); return; }
+
+      await window.api.addMovimientoCaja({
+        tipo, monto, concepto,
+        usuario_id: usuarioActual.id,
+        usuario_nombre: usuarioActual.username,
+      });
+
+      document.getElementById('cajaMonto').value = '';
+      document.getElementById('cajaConcepto').value = '';
+
+      const movs = await window.api.getMovimientosCaja({ usuario_id: usuarioActual.id });
+      renderCajaMovimientos(movs);
+      mostrarToast(`Movimiento (${tipo}) registrado: ${formatear(monto)}`);
+    });
+
 
 
     let usuarioActual = null;
@@ -1148,6 +1539,7 @@
       const contenedor = document.getElementById('productosList');
       contenedor.innerHTML = `
         <div style="display:flex;gap:6px;padding:6px 12px;font-size:12px;color:#8a7a6a;font-weight:600;border-bottom:1px solid #e0d6ca;margin-bottom:4px">
+          <span style="width:60px">Código</span>
           <span style="flex:2;min-width:120px">Producto</span>
           <span style="flex:1;min-width:80px">Tamaño</span>
           <span style="flex:1;min-width:90px">Tipo</span>
@@ -1158,6 +1550,7 @@
       ` + productos.map(p => `
         <div class="item-carrito" style="flex-wrap:wrap;gap:4px;padding:8px 12px">
           <div style="display:flex;gap:6px;flex-wrap:wrap;width:100%">
+            <input class="prod-codigo" data-id="${p.id}" value="${p.codigo || ''}" placeholder="001" style="width:60px;padding:4px 6px;border:1px solid #d4c4b3;border-radius:6px;font-size:13px">
             <input class="prod-nombre" data-id="${p.id}" value="${p.nombre}" style="flex:2;min-width:120px;padding:4px 6px;border:1px solid #d4c4b3;border-radius:6px;font-size:13px">
             <input class="prod-variante" data-id="${p.id}" value="${p.variante}" style="flex:1;min-width:80px;padding:4px 6px;border:1px solid #d4c4b3;border-radius:6px;font-size:13px">
             <select class="prod-categoria" data-id="${p.id}" style="flex:1;min-width:90px;padding:4px 6px;border:1px solid #d4c4b3;border-radius:6px;font-size:13px">
@@ -1190,13 +1583,14 @@
       const productos = document.querySelectorAll('.prod-nombre');
       for (const el of productos) {
         const id = parseInt(el.dataset.id);
+        const codigo = document.querySelector(`.prod-codigo[data-id="${id}"]`).value.trim();
         const nombre = el.value.trim();
         const variante = document.querySelector(`.prod-variante[data-id="${id}"]`).value.trim();
         const categoria = document.querySelector(`.prod-categoria[data-id="${id}"]`).value;
         const precio = parseFloat(document.querySelector(`.prod-precio[data-id="${id}"]`).value) || 0;
         const stock = parseInt(document.querySelector(`.prod-stock[data-id="${id}"]`).value) || 0;
         if (nombre) {
-          await window.api.updateProduct({ id, nombre, variante, categoria, precio_venta: precio, stock_actual: stock });
+          await window.api.updateProduct({ id, nombre, variante, categoria, precio_venta: precio, stock_actual: stock, codigo });
         }
       }
       document.getElementById('modalProductos').classList.remove('mostrar');
@@ -1204,11 +1598,12 @@
       cargarProductos();
     });
     document.getElementById('btnNuevoProducto').addEventListener('click', async () => {
+      const codigo = prompt('Código del producto (ej: 001):') || '';
       const nombre = prompt('Nombre del producto:');
       if (!nombre) return;
       const categoria = prompt('Categoría (Panadería, Pastelería, Facturas, Salado, Bebidas, Otros):') || 'Otros';
       const precio = parseFloat(prompt('Precio de venta ($):')) || 0;
-      await window.api.createProduct({ nombre, variante: 'Estándar', categoria, precio_venta: precio, stock_actual: 0 });
+      await window.api.createProduct({ nombre, variante: 'Estándar', categoria, precio_venta: precio, stock_actual: 0, codigo });
       mostrarToast('Producto creado');
       abrirProductos();
       cargarProductos();
@@ -1228,6 +1623,10 @@
       for (const btn of adminBtns) {
         btn.style.display = user.rol === 'admin' ? '' : 'none';
       }
+
+      window.api.getApertura(usuarioActual.id).then(apertura => {
+        document.getElementById('btn-abrir-caja').style.display = apertura ? 'none' : '';
+      }).catch(() => {});
 
       initApp();
     }
@@ -1268,6 +1667,7 @@
       document.getElementById('todayTotal').textContent = formatear(0);
       document.getElementById('todayCount').textContent = '0 ventas';
       document.getElementById('todayPendiente').textContent = '';
+      document.getElementById('btn-abrir-caja').style.display = '';
       carrito.length = 0;
       renderCarrito();
     });
@@ -1289,6 +1689,18 @@
       cargarProductos();
       cargarTodayBar();
     }
+
+    document.addEventListener('keydown', async (e) => {
+      if (e.ctrlKey && e.shiftKey && e.key === 'R') {
+        e.preventDefault();
+        if (confirm('¿Borrar TODOS los registros (ventas, cierres, aperturas, movimientos) y empezar de cero?')) {
+          await window.api.resetDatabase();
+          mostrarToast('Base de datos reiniciada');
+          cargarTodayBar();
+          document.getElementById('btn-abrir-caja').style.display = '';
+        }
+      }
+    });
   </script>
 </body>
 </html>

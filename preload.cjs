@@ -22,4 +22,11 @@ contextBridge.exposeInMainWorld('api', {
   updateProduct: (data) => ipcRenderer.invoke('update-product', data),
   createProduct: (data) => ipcRenderer.invoke('create-product', data),
   deleteProduct: (id) => ipcRenderer.invoke('delete-product', id),
+  addMovimientoCaja: (data) => ipcRenderer.invoke('add-movimiento-caja', data),
+  getMovimientosCaja: (data) => ipcRenderer.invoke('get-movimientos-caja', data),
+  deleteMovimientoCaja: (id) => ipcRenderer.invoke('delete-movimiento-caja', id),
+  abrirCaja: (data) => ipcRenderer.invoke('abrir-caja', data),
+  getApertura: (usuario_id) => ipcRenderer.invoke('get-apertura', usuario_id),
+  getEstaCerrado: (usuario_id) => ipcRenderer.invoke('get-esta-cerrado', usuario_id),
+  resetDatabase: () => ipcRenderer.invoke('reset-database'),
 });
