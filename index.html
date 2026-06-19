@@ -1515,7 +1515,10 @@
               <div class="nombre-item">${u.username} ${esYo ? '<span style="color:#8a7a6a;font-size:11px">(vos)</span>' : ''}</div>
               <div class="detalle-item">${u.rol === 'admin' ? 'Administrador' : 'Vendedor'}</div>
             </div>
-            ${esYo ? '' : `<button class="btn-del-user" data-id="${u.id}" style="background:#fde0e0;border:none;color:#b33a3a;padding:6px 12px;border-radius:6px;cursor:pointer;font-size:12px;font-weight:500">Eliminar</button>`}
+            <div style="display:flex;gap:4px">
+              <button class="btn-pass-user" data-id="${u.id}" style="background:#e8ddd2;border:none;color:#5c3a1e;padding:6px 12px;border-radius:6px;cursor:pointer;font-size:12px;font-weight:500">🔑</button>
+              ${esYo ? '' : `<button class="btn-del-user" data-id="${u.id}" style="background:#fde0e0;border:none;color:#b33a3a;padding:6px 12px;border-radius:6px;cursor:pointer;font-size:12px;font-weight:500">Eliminar</button>`}
+            </div>
           </div>`;
       }).join('');
 
@@ -1524,6 +1527,16 @@
           if (confirm('¿Eliminar este usuario?')) {
             await window.api.deleteUser(parseInt(btn.dataset.id));
             abrirUsuarios();
+          }
+        });
+      });
+
+      contenedor.querySelectorAll('.btn-pass-user').forEach(btn => {
+        btn.addEventListener('click', async () => {
+          const newPass = await customPrompt('Nueva contraseña:');
+          if (newPass) {
+            await window.api.changePassword({ userId: parseInt(btn.dataset.id), newPassword: newPass });
+            mostrarToast('Contraseña actualizada');
           }
         });
       });

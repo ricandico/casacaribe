@@ -378,6 +378,11 @@ app.whenReady().then(() => {
     return { success: true };
   });
 
+  ipcMain.handle('change-password', (_, { userId, newPassword }) => {
+    db.prepare('UPDATE usuarios SET password = ? WHERE id = ?').run(newPassword, userId);
+    return { success: true };
+  });
+
   ipcMain.handle('get-cierre', (_, { usuario_id }) => {
     const hoy = new Date().toISOString().slice(0, 10);
     const apertura = db.prepare('SELECT id, saldo_inicial, hora FROM apertura_caja WHERE usuario_id = ? AND fecha = ? ORDER BY id DESC LIMIT 1').get(usuario_id, hoy);
