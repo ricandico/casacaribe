@@ -917,6 +917,7 @@
     <div class="modal" style="width:800px;max-width:95vw;max-height:85vh;overflow-y:auto">
       <h2>Productos <button id="btnNuevoProducto" style="background:#2d6a1e;color:#fff;border:none;padding:4px 12px;border-radius:6px;cursor:pointer;font-size:13px;font-weight:500;margin-left:12px;vertical-align:middle">+ Nuevo</button></h2>
       <div id="productosList"></div>
+      <div id="productosPaginacion"></div>
       <div class="modal-botones" style="margin-top:12px;justify-content:space-between">
         <div>
           <button id="btnReiniciarDB" style="background:#b33a3a;color:#fff;border:none;padding:6px 12px;border-radius:6px;cursor:pointer;font-size:11px;font-weight:500">🔄 Reiniciar Base de Datos</button>
@@ -2600,46 +2601,14 @@
       }
     });
 
+    let _prodPagina = 1;
+    let _prodData = [];
+
     async function abrirProductos() {
       try {
-        const productos = await window.api.getAllProducts();
-        const contenedor = document.getElementById('productosList');
-        contenedor.innerHTML = `
-        <div style="display:flex;gap:6px;padding:6px 12px;font-size:12px;color:#8a7a6a;font-weight:600;border-bottom:1px solid #e0d6ca;margin-bottom:4px">
-          <span style="width:60px">Código</span>
-          <span style="flex:3;min-width:150px">Producto</span>
-          <span style="flex:1;min-width:90px">Tipo</span>
-          <span style="width:70px;text-align:right">Precio</span>
-          <span style="width:55px;text-align:right">Cantidad</span>
-          <span style="width:28px"></span>
-        </div>
-        ` + productos.map(p => `
-          <div class="item-carrito" style="flex-wrap:wrap;gap:4px;padding:8px 12px">
-          <div style="display:flex;gap:6px;flex-wrap:wrap;width:100%">
-            <input class="prod-codigo" data-id="${p.id}" value="${p.codigo || ''}" placeholder="001" style="width:60px;padding:4px 6px;border:1px solid #d4c4b3;border-radius:6px;font-size:13px">
-            <input class="prod-nombre" data-id="${p.id}" value="${p.nombre}" style="flex:3;min-width:150px;padding:4px 6px;border:1px solid #d4c4b3;border-radius:6px;font-size:13px">
-            <select class="prod-categoria" data-id="${p.id}" style="flex:1;min-width:90px;padding:4px 6px;border:1px solid #d4c4b3;border-radius:6px;font-size:13px">
-                ${['Panadería','Pastelería','Facturas','Salado','Bebidas','Otros'].map(c =>
-                  `<option value="${c}" ${p.categoria === c ? 'selected' : ''}>${c}</option>`
-                ).join('')}
-              </select>
-              <input class="prod-precio" data-id="${p.id}" type="number" min="0" value="${Math.round(p.precio_venta)}" style="width:70px;padding:4px 6px;border:1px solid #d4c4b3;border-radius:6px;font-size:13px;text-align:right">
-              <input class="prod-stock" data-id="${p.id}" type="number" min="0" value="${p.stock_actual}" style="width:55px;padding:4px 6px;border:1px solid #d4c4b3;border-radius:6px;font-size:13px;text-align:right">
-              <button class="btn-prod-delete" data-id="${p.id}" style="background:#b33a3a;color:#fff;border:none;width:28px;height:28px;border-radius:6px;cursor:pointer;font-size:14px;line-height:1">✕</button>
-            </div>
-          </div>
-        `).join('');
-
-        contenedor.querySelectorAll('.btn-prod-delete').forEach(btn => {
-          btn.addEventListener('click', async () => {
-            if (!confirm('¿Eliminar este producto?')) return;
-            await window.api.deleteProduct(parseInt(btn.dataset.id));
-            mostrarToast('Producto eliminado');
-            abrirProductos();
-            cargarProductos();
-          });
-        });
-
+        _prodData = await window.api.getAllProducts();
+        _prodPagina = 1;
+        _renderProdPagina();
         document.getElementById('modalProductos').classList.add('mostrar');
       } catch (err) {
         console.error('Error al abrir productos:', err);
@@ -2647,17 +2616,73 @@
       }
     }
 
-    document.getElementById('btnCerrarProductos').addEventListener('click', async () => {
-      const productos = document.querySelectorAll('.prod-nombre');
-      for (const el of productos) {
+    function _renderProdPagina() {
+      const contenedor = document.getElementById('productosList');
+      const { items, pagina, totalPaginas } = paginar(_prodData, _prodPagina, 15);
+
+      contenedor.innerHTML = `
+      <div style="display:flex;gap:6px;padding:6px 12px;font-size:12px;color:#8a7a6a;font-weight:600;border-bottom:1px solid #e0d6ca;margin-bottom:4px">
+        <span style="width:60px">Código</span>
+        <span style="flex:3;min-width:150px">Producto</span>
+        <span style="flex:1;min-width:90px">Tipo</span>
+        <span style="width:70px;text-align:right">Precio</span>
+        <span style="width:55px;text-align:right">Cantidad</span>
+        <span style="width:28px"></span>
+      </div>
+      ` + items.map(p => `
+        <div class="item-carrito" style="flex-wrap:wrap;gap:4px;padding:8px 12px">
+        <div style="display:flex;gap:6px;flex-wrap:wrap;width:100%">
+          <input class="prod-codigo" data-id="${p.id}" value="${p.codigo || ''}" placeholder="001" style="width:60px;padding:4px 6px;border:1px solid #d4c4b3;border-radius:6px;font-size:13px">
+          <input class="prod-nombre" data-id="${p.id}" value="${p.nombre}" style="flex:3;min-width:150px;padding:4px 6px;border:1px solid #d4c4b3;border-radius:6px;font-size:13px">
+          <select class="prod-categoria" data-id="${p.id}" style="flex:1;min-width:90px;padding:4px 6px;border:1px solid #d4c4b3;border-radius:6px;font-size:13px">
+              ${['Panadería','Pastelería','Facturas','Salado','Bebidas','Otros'].map(c =>
+                `<option value="${c}" ${p.categoria === c ? 'selected' : ''}>${c}</option>`
+              ).join('')}
+            </select>
+            <input class="prod-precio" data-id="${p.id}" type="number" min="0" value="${Math.round(p.precio_venta)}" style="width:70px;padding:4px 6px;border:1px solid #d4c4b3;border-radius:6px;font-size:13px;text-align:right">
+            <input class="prod-stock" data-id="${p.id}" type="number" min="0" value="${p.stock_actual}" style="width:55px;padding:4px 6px;border:1px solid #d4c4b3;border-radius:6px;font-size:13px;text-align:right">
+            <button class="btn-prod-delete" data-id="${p.id}" style="background:#b33a3a;color:#fff;border:none;width:28px;height:28px;border-radius:6px;cursor:pointer;font-size:14px;line-height:1">✕</button>
+          </div>
+        </div>
+      `).join('');
+
+      contenedor.querySelectorAll('.btn-prod-delete').forEach(btn => {
+        btn.addEventListener('click', async () => {
+          if (!confirm('¿Eliminar este producto?')) return;
+          await window.api.deleteProduct(parseInt(btn.dataset.id));
+          mostrarToast('Producto eliminado');
+          _prodData = _prodData.filter(p => p.id !== parseInt(btn.dataset.id));
+          _renderProdPagina();
+          cargarProductos();
+        });
+      });
+
+      renderPaginacion('productosPaginacion', totalPaginas, pagina, (pg) => {
+        _syncProdInputs();
+        _prodPagina = pg;
+        _renderProdPagina();
+      });
+    }
+
+    function _syncProdInputs() {
+      document.querySelectorAll('.prod-nombre').forEach(el => {
         const id = parseInt(el.dataset.id);
-        const codigo = document.querySelector(`.prod-codigo[data-id="${id}"]`).value.trim();
-        const nombre = el.value.trim();
-        const categoria = document.querySelector(`.prod-categoria[data-id="${id}"]`).value;
-        const precio = parseFloat(document.querySelector(`.prod-precio[data-id="${id}"]`).value) || 0;
-        const stock = parseInt(document.querySelector(`.prod-stock[data-id="${id}"]`).value) || 0;
-        if (nombre) {
-          await window.api.updateProduct({ id, nombre, variante: 'Estándar', categoria, precio_venta: precio, stock_actual: stock, codigo });
+        const item = _prodData.find(p => p.id === id);
+        if (item) {
+          item.codigo = document.querySelector(`.prod-codigo[data-id="${id}"]`)?.value.trim() || item.codigo;
+          item.nombre = el.value.trim() || item.nombre;
+          item.categoria = document.querySelector(`.prod-categoria[data-id="${id}"]`)?.value || item.categoria;
+          item.precio_venta = parseFloat(document.querySelector(`.prod-precio[data-id="${id}"]`)?.value) || item.precio_venta;
+          item.stock_actual = parseInt(document.querySelector(`.prod-stock[data-id="${id}"]`)?.value) || item.stock_actual;
+        }
+      });
+    }
+
+    document.getElementById('btnCerrarProductos').addEventListener('click', async () => {
+      _syncProdInputs();
+      for (const item of _prodData) {
+        if (item.nombre) {
+          await window.api.updateProduct({ id: item.id, nombre: item.nombre, variante: 'Estándar', categoria: item.categoria, precio_venta: item.precio_venta, stock_actual: item.stock_actual, codigo: item.codigo });
         }
       }
       document.getElementById('modalProductos').classList.remove('mostrar');
