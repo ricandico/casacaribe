@@ -25,24 +25,6 @@
       --card-hover-shadow: 0 3px 8px rgba(0,0,0,0.12);
     }
 
-    .dark {
-      --bg: #1a1714;
-      --bg-card: #2a2520;
-      --bg-header: #3a2510;
-      --bg-sidebar: #2a1c0e;
-      --text: #e8ddd2;
-      --text-muted: #a09080;
-      --border: #3a3228;
-      --accent: #c08040;
-      --accent-hover: #d09050;
-      --green: #4da83a;
-      --red: #e05555;
-      --yellow: #d0a020;
-      --blue: #4a9ad0;
-      --card-shadow: 0 1px 3px rgba(0,0,0,0.3);
-      --card-hover-shadow: 0 3px 8px rgba(0,0,0,0.4);
-    }
-
     body {
       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
       background: var(--bg);
@@ -66,63 +48,26 @@
     header h1 { font-size: 20px; font-weight: 600; letter-spacing: 0.5px; white-space: nowrap; }
 
     .hamburger {
-      background: rgba(255,255,255,0.15);
-      border: none;
-      color: #fff;
-      width: 40px;
-      height: 40px;
-      border-radius: 8px;
-      cursor: pointer;
-      font-size: 20px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      transition: background 0.15s;
-    }
-    .hamburger:hover { background: rgba(255,255,255,0.25); }
-
-    .sidebar-overlay {
       display: none;
-      position: fixed;
-      inset: 0;
-      background: rgba(0,0,0,0.4);
-      z-index: 100;
     }
-    .sidebar-overlay.abierto { display: block; }
 
     .sidebar {
-      position: fixed;
-      top: 0;
-      left: -280px;
-      width: 280px;
+      width: 240px;
+      min-width: 240px;
       height: 100vh;
       background: var(--bg-sidebar);
-      z-index: 101;
       display: flex;
       flex-direction: column;
-      transition: left 0.25s ease;
       overflow-y: auto;
+      flex-shrink: 0;
     }
-    .sidebar.abierto { left: 0; }
 
     .sidebar-header {
       padding: 16px 20px;
       border-bottom: 1px solid rgba(255,255,255,0.1);
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
     }
     .sidebar-header h2 { font-size: 16px; color: #f5f0eb; font-weight: 600; }
-    .sidebar-close {
-      background: none;
-      border: none;
-      color: #f5f0eb;
-      font-size: 22px;
-      cursor: pointer;
-      padding: 4px;
-      opacity: 0.7;
-    }
-    .sidebar-close:hover { opacity: 1; }
+    .sidebar-close { display: none; }
 
     .sidebar-nav { flex: 1; padding: 12px 0; }
 
@@ -546,8 +491,9 @@
     .login-card button:hover { background: var(--accent-hover); }
     .login-error { color: var(--red); font-size: 13px; margin-top: 8px; }
 
-    .app-container { display: none; flex-direction: column; height: 100vh; }
+    .app-container { display: none; flex-direction: row; height: 100vh; }
     .app-container.mostrar { display: flex; }
+    .app-main { flex: 1; display: flex; flex-direction: column; min-width: 0; }
 
     .paginacion {
       display: flex;
@@ -593,22 +539,6 @@
     }
     #btn-logout:hover { background: rgba(255,255,255,0.2); }
 
-    .theme-toggle {
-      background: rgba(255,255,255,0.15);
-      border: none;
-      color: #fff;
-      width: 36px;
-      height: 36px;
-      border-radius: 8px;
-      cursor: pointer;
-      font-size: 16px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      transition: background 0.15s;
-    }
-    .theme-toggle:hover { background: rgba(255,255,255,0.25); }
-
     /* Touch-friendly mode */
     @media (max-width: 900px), (hover: none) and (pointer: coarse) {
       .productos-grid {
@@ -631,6 +561,14 @@
       #btn-pagar { padding: 16px !important; font-size: 17px !important; }
     }
 
+    @media (max-width: 700px) {
+      .sidebar { width: 60px !important; min-width: 60px !important; }
+      .sidebar-header h2 { display: none; }
+      .sidebar-btn span:not(.icon) { display: none; }
+      .sidebar-btn { justify-content: center; padding: 12px 8px !important; }
+      .sidebar-divider { margin: 4px 8px !important; }
+    }
+
     @media (max-width: 600px) {
       .layout { flex-direction: column; }
       .panel-carrito { width: 100% !important; border-left: none !important; border-top: 1px solid var(--border); max-height: 50vh; }
@@ -651,44 +589,38 @@
     </div>
   </div>
 
-  <div class="sidebar-overlay" id="sidebarOverlay"></div>
-  <div class="sidebar" id="sidebar">
-    <div class="sidebar-header">
-      <h2>Casa Caribe</h2>
-      <button class="sidebar-close" id="sidebarClose">&times;</button>
-    </div>
-    <div class="sidebar-nav">
-      <button class="sidebar-btn" data-action="historial"><span class="icon">📋</span> Historial</button>
-      <button class="sidebar-btn" data-action="cierre"><span class="icon">📊</span> Cierre de Jornada</button>
-      <button class="sidebar-btn" data-action="caja"><span class="icon">💰</span> Movimientos de Caja</button>
-      <button class="sidebar-btn" data-action="pendientes"><span class="icon">📌</span> Cuentas Pendientes</button>
-      <button class="sidebar-btn" data-action="descarte"><span class="icon">🗑️</span> Descartar Productos</button>
-      <div class="sidebar-divider"></div>
-      <button class="sidebar-btn admin-only" data-action="abrir-caja"><span class="icon">🔓</span> Abrir Caja</button>
-      <button class="sidebar-btn admin-only" data-action="productos"><span class="icon">🏷️</span> Gestionar Productos</button>
-      <button class="sidebar-btn admin-only" data-action="usuarios"><span class="icon">👥</span> Gestionar Usuarios</button>
-      <button class="sidebar-btn admin-only" data-action="historial-cierres"><span class="icon">📁</span> Historial de Cierres</button>
-      <button class="sidebar-btn admin-only" data-action="historial-movimientos"><span class="icon">💸</span> Historial de Movimientos</button>
-      <div class="sidebar-divider"></div>
-      <button class="sidebar-btn" data-action="logout"><span class="icon">🚪</span> Cerrar Sesión</button>
-    </div>
-  </div>
-
   <div class="app-container" id="appContainer">
-  <header>
-    <div style="display:flex;align-items:center;gap:12px">
-      <button class="hamburger" id="btnHamburger">&#9776;</button>
-      <h1>Casa Caribe — Panadería</h1>
-    </div>
-    <div class="header-actions">
-      <button class="theme-toggle" id="btnThemeToggle" title="Cambiar tema">🌙</button>
-      <div class="total-venta-header" id="totalHeader">$ 0,00</div>
-      <div class="user-info">
-        <div id="userNameDisplay"></div>
-        <div class="rol" id="userRolDisplay"></div>
+    <div class="sidebar" id="sidebar">
+      <div class="sidebar-header">
+        <h2>Casa Caribe</h2>
+      </div>
+      <div class="sidebar-nav">
+        <button class="sidebar-btn" data-action="historial"><span class="icon">📋</span> Historial</button>
+        <button class="sidebar-btn" data-action="cierre"><span class="icon">📊</span> Cierre de Jornada</button>
+        <button class="sidebar-btn" data-action="caja"><span class="icon">💰</span> Movimientos de Caja</button>
+        <button class="sidebar-btn" data-action="pendientes"><span class="icon">📌</span> Cuentas Pendientes</button>
+        <button class="sidebar-btn" data-action="descarte"><span class="icon">🗑️</span> Descartar Productos</button>
+        <div class="sidebar-divider"></div>
+        <button class="sidebar-btn admin-only" data-action="abrir-caja"><span class="icon">🔓</span> Abrir Caja</button>
+        <button class="sidebar-btn admin-only" data-action="productos"><span class="icon">🏷️</span> Gestionar Productos</button>
+        <button class="sidebar-btn admin-only" data-action="usuarios"><span class="icon">👥</span> Gestionar Usuarios</button>
+        <button class="sidebar-btn admin-only" data-action="historial-cierres"><span class="icon">📁</span> Historial de Cierres</button>
+        <button class="sidebar-btn admin-only" data-action="historial-movimientos"><span class="icon">💸</span> Historial de Movimientos</button>
+        <div class="sidebar-divider"></div>
+        <button class="sidebar-btn" data-action="logout"><span class="icon">🚪</span> Cerrar Sesión</button>
       </div>
     </div>
-  </header>
+    <div class="app-main">
+      <header>
+        <h1>Casa Caribe — Panadería</h1>
+        <div class="header-actions">
+          <div class="total-venta-header" id="totalHeader">$ 0,00</div>
+          <div class="user-info">
+            <div id="userNameDisplay"></div>
+            <div class="rol" id="userRolDisplay"></div>
+          </div>
+        </div>
+      </header>
 
   <div class="layout">
     <div class="panel-productos">
@@ -1041,6 +973,7 @@
 
   <div class="toast" id="toast"></div>
 
+    </div>
   </div>
 
   <script>
@@ -1048,34 +981,19 @@
 
     // === SIDEBAR ===
     const $sidebar = document.getElementById('sidebar');
-    const $sidebarOverlay = document.getElementById('sidebarOverlay');
-
-    document.getElementById('btnHamburger').addEventListener('click', () => {
-      $sidebar.classList.add('abierto');
-      $sidebarOverlay.classList.add('abierto');
-    });
-
-    function cerrarSidebar() {
-      $sidebar.classList.remove('abierto');
-      $sidebarOverlay.classList.remove('abierto');
-    }
-
-    document.getElementById('sidebarClose').addEventListener('click', cerrarSidebar);
-    $sidebarOverlay.addEventListener('click', cerrarSidebar);
 
     const sidebarActions = {
-      'historial': () => { cerrarSidebar(); abrirHistorial(); },
-      'cierre': () => { cerrarSidebar(); abrirCierre(); },
-      'caja': () => { cerrarSidebar(); abrirCaja(); },
-      'pendientes': () => { cerrarSidebar(); abrirPendientes(); },
-      'descarte': () => { cerrarSidebar(); abrirDescarte(); },
-      'abrir-caja': () => { cerrarSidebar(); abrirCajaInicial(); },
-      'productos': () => { cerrarSidebar(); abrirProductos(); },
-      'usuarios': () => { cerrarSidebar(); abrirUsuarios(); },
-      'historial-cierres': () => { cerrarSidebar(); abrirHistorialCierres(); },
-      'historial-movimientos': () => { cerrarSidebar(); abrirHistorialMovimientos(); },
+      'historial': () => { abrirHistorial(); },
+      'cierre': () => { abrirCierre(); },
+      'caja': () => { abrirCaja(); },
+      'pendientes': () => { abrirPendientes(); },
+      'descarte': () => { abrirDescarte(); },
+      'abrir-caja': () => { abrirCajaInicial(); },
+      'productos': () => { abrirProductos(); },
+      'usuarios': () => { abrirUsuarios(); },
+      'historial-cierres': () => { abrirHistorialCierres(); },
+      'historial-movimientos': () => { abrirHistorialMovimientos(); },
       'logout': () => {
-        cerrarSidebar();
         usuarioActual = null;
         document.getElementById('appContainer').classList.remove('mostrar');
         document.getElementById('loginOverlay').style.display = 'flex';
@@ -1095,26 +1013,6 @@
         const action = btn.dataset.action;
         if (sidebarActions[action]) sidebarActions[action]();
       });
-    });
-
-    // === TEMA OSCURO ===
-    function aplicarTema(tema) {
-      if (tema === 'dark') {
-        document.body.classList.add('dark');
-        document.getElementById('btnThemeToggle').textContent = '☀️';
-      } else {
-        document.body.classList.remove('dark');
-        document.getElementById('btnThemeToggle').textContent = '🌙';
-      }
-      localStorage.setItem('casacaribe-tema', tema);
-    }
-
-    const temaGuardado = localStorage.getItem('casacaribe-tema') || 'light';
-    aplicarTema(temaGuardado);
-
-    document.getElementById('btnThemeToggle').addEventListener('click', () => {
-      const actual = document.body.classList.contains('dark') ? 'dark' : 'light';
-      aplicarTema(actual === 'dark' ? 'light' : 'dark');
     });
 
     // === NOTIFICACIONES CON SONIDO ===
