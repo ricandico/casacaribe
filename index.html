@@ -1714,7 +1714,6 @@
       await window.api.abrirCaja({ usuario_id: usuarioActual.id, saldo_inicial: saldo });
       document.getElementById('modalApertura').classList.remove('mostrar');
       mostrarToast('🔓 Caja abierta — saldo inicial: ' + formatear(saldo));
-      document.getElementById('btn-abrir-caja').style.display = 'none';
       } catch (err) {
         mostrarToast('Error: ' + err.message);
         console.error(err);
@@ -1743,7 +1742,6 @@
 
       document.getElementById('modalCierre').classList.remove('mostrar');
       mostrarToast('Cierre confirmado — turno finalizado');
-      document.getElementById('btn-abrir-caja').style.display = '';
       cargarTodayBar();
       } catch (err) {
         mostrarToast('Error: ' + err.message);
@@ -2949,7 +2947,6 @@
           await window.api.resetDatabase();
           mostrarToast('Base de datos reiniciada');
           cargarTodayBar();
-          document.getElementById('btn-abrir-caja').style.display = '';
         }
       }
     });
