@@ -1156,11 +1156,12 @@
     // === PAGINACIÓN GENÉRICA ===
     const PAG_TAM = 10;
 
-    function paginar(items, pagina) {
-      const totalPaginas = Math.max(1, Math.ceil(items.length / PAG_TAM));
+    function paginar(items, pagina, tam) {
+      const t = tam || PAG_TAM;
+      const totalPaginas = Math.max(1, Math.ceil(items.length / t));
       const p = Math.min(Math.max(1, pagina), totalPaginas);
-      const inicio = (p - 1) * PAG_TAM;
-      return { items: items.slice(inicio, inicio + PAG_TAM), pagina: p, totalPaginas, total: items.length };
+      const inicio = (p - 1) * t;
+      return { items: items.slice(inicio, inicio + t), pagina: p, totalPaginas, total: items.length };
     }
 
     function renderPaginacion(containerId, totalPaginas, paginaActual, callback) {
@@ -2073,7 +2074,7 @@
         return;
       }
 
-      const { items, pagina, totalPaginas } = paginar(ventas, _histVentasPagina);
+      const { items, pagina, totalPaginas } = paginar(ventas, _histVentasPagina, 5);
 
       contenedor.innerHTML = items.map(v => {
         const fecha = v.fecha_hora ? v.fecha_hora.replace('T', ' ').slice(0, 16) : '';
@@ -2226,7 +2227,7 @@
         return;
       }
 
-      const { items, pagina, totalPaginas } = paginar(_cierresData, _cierresPagina);
+      const { items, pagina, totalPaginas } = paginar(_cierresData, _cierresPagina, 5);
 
       contenedor.innerHTML = items.map(c => {
         const porPago = JSON.parse(c.por_pago || '{}');
@@ -3412,7 +3413,7 @@
         return;
       }
 
-      const { items, pagina, totalPaginas } = paginar(_movData, _movPagina);
+      const { items, pagina, totalPaginas } = paginar(_movData, _movPagina, 5);
 
       contenedor.innerHTML = items.map(m => `
         <div style="padding:10px 0;border-bottom:1px solid #e0d6ca;font-size:13px;display:flex;align-items:center;gap:10px">
