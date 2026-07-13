@@ -579,16 +579,28 @@
     .contab-tab {
       background: none;
       border: none;
-      padding: 10px 18px;
-      font-size: 13px;
-      font-weight: 500;
-      color: var(--text-muted);
+      border-bottom: 3px solid transparent;
+      padding: 10px 16px;
+      font-size: 14px;
+      font-weight: 600;
+      color: #8c7355;
       cursor: pointer;
-      border-bottom: 2px solid transparent;
-      transition: all 0.15s;
+      transition: all 0.2s ease;
+      margin-bottom: -2px;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
     }
-    .contab-tab:hover { color: var(--accent); }
-    .contab-tab.activo { color: var(--accent); border-bottom-color: var(--accent); font-weight: 600; }
+    .contab-tab:hover {
+      color: #5c3a1e;
+      background-color: rgba(92, 58, 30, 0.05);
+      border-top-left-radius: 6px;
+      border-top-right-radius: 6px;
+    }
+    .contab-tab.activo {
+      color: #5c3a1e;
+      border-bottom-color: #5c3a1e;
+    }
 
     .contab-card {
       background: var(--bg-card);
@@ -1061,12 +1073,12 @@
 
   <!-- MODAL CONTABILIDAD -->
   <div class="modal-overlay" id="modalContabilidad">
-    <div class="modal" style="width:900px;max-width:95vw;max-height:90vh;overflow-y:auto">
+    <div class="modal" style="width:900px;max-width:95vw;max-height:90vh;overflow-y:auto;box-sizing:border-box">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
-        <h2 style="margin:0">📊 Contabilidad</h2>
-        <button id="btnCerrarContabilidad" style="background:#e8ddd2;color:#5c3a1e;border:none;padding:8px 16px;border-radius:8px;cursor:pointer;font-size:13px;font-weight:500">Cerrar</button>
+        <h2 style="margin:0;font-size:22px;color:#5c3a1e">📊 Contabilidad</h2>
+        <button id="btnCerrarContabilidad" style="background:#e8ddd2;color:#5c3a1e;border:none;padding:8px 16px;border-radius:8px;cursor:pointer;font-size:13px;font-weight:600;transition:background 0.2s">Cerrar</button>
       </div>
-      <div style="display:flex;gap:4px;margin-bottom:16px;border-bottom:2px solid #e0d6ca">
+      <div style="display:flex;gap:6px;margin-bottom:20px;border-bottom:2px solid #e0d6ca;flex-wrap:wrap;width:100%">
         <button class="contab-tab activo" data-tab="resumen">📋 Resumen</button>
         <button class="contab-tab" data-tab="registrar">➕ Registrar Gasto</button>
         <button class="contab-tab" data-tab="todos">📁 Todos los Gastos</button>
@@ -1080,7 +1092,7 @@
           <h3 style="font-size:14px;color:#5c3a1e;margin-bottom:12px">Ingresos vs Gastos (6 meses)</h3>
           <canvas id="contabChart" height="180"></canvas>
         </div>
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:16px">
           <div style="background:#faf7f4;border-radius:10px;padding:16px;border:1px solid #e0d6ca">
             <h3 style="font-size:14px;color:#5c3a1e;margin-bottom:10px">Gastos por Categoría</h3>
             <div id="contabCatBars"></div>
@@ -1094,28 +1106,28 @@
 
       <!-- TAB REGISTRAR GASTO -->
       <div class="contab-panel" id="contabRegistrar" style="display:none">
-        <div style="max-width:500px">
+        <div style="max-width:500px;margin:0 auto">
           <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px">
             <div>
               <label style="font-size:12px;font-weight:600;color:#5c3a1e;display:block;margin-bottom:4px">Monto ($)</label>
-              <input id="contabMonto" type="number" min="0" step="any" placeholder="0" style="width:100%;padding:10px;border:2px solid #d4c4b3;border-radius:8px;font-size:16px;font-weight:700">
+              <input id="contabMonto" type="number" min="0" step="any" placeholder="0" style="width:100%;padding:10px;border:2px solid #d4c4b3;border-radius:8px;font-size:16px;font-weight:700;box-sizing:border-box">
             </div>
             <div>
               <label style="font-size:12px;font-weight:600;color:#5c3a1e;display:block;margin-bottom:4px">Fecha</label>
-              <input id="contabFecha" type="date" style="width:100%;padding:10px;border:2px solid #d4c4b3;border-radius:8px;font-size:14px">
+              <input id="contabFecha" type="date" style="width:100%;padding:10px;border:2px solid #d4c4b3;border-radius:8px;font-size:14px;box-sizing:border-box;height:45px">
             </div>
           </div>
           <div style="margin-bottom:12px">
             <label style="font-size:12px;font-weight:600;color:#5c3a1e;display:block;margin-bottom:4px">Categoría</label>
-            <select id="contabCategoria" style="width:100%;padding:10px;border:2px solid #d4c4b3;border-radius:8px;font-size:14px"></select>
+            <select id="contabCategoria" style="width:100%;padding:10px;border:2px solid #d4c4b3;border-radius:8px;font-size:14px;box-sizing:border-box;height:45px;background-color:#fff"></select>
           </div>
           <div style="margin-bottom:12px">
             <label style="font-size:12px;font-weight:600;color:#5c3a1e;display:block;margin-bottom:4px">Concepto</label>
-            <input id="contabConcepto" type="text" placeholder="Descripción del gasto" style="width:100%;padding:10px;border:2px solid #d4c4b3;border-radius:8px;font-size:14px">
+            <input id="contabConcepto" type="text" placeholder="Descripción del gasto" style="width:100%;padding:10px;border:2px solid #d4c4b3;border-radius:8px;font-size:14px;box-sizing:border-box">
           </div>
           <div style="margin-bottom:12px">
             <label style="font-size:12px;font-weight:600;color:#5c3a1e;display:block;margin-bottom:4px">Proveedor (opcional)</label>
-            <input id="contabProveedor" type="text" placeholder="Nombre del proveedor" style="width:100%;padding:10px;border:2px solid #d4c4b3;border-radius:8px;font-size:14px">
+            <input id="contabProveedor" type="text" placeholder="Nombre del proveedor" style="width:100%;padding:10px;border:2px solid #d4c4b3;border-radius:8px;font-size:14px;box-sizing:border-box">
           </div>
           <div style="margin-bottom:16px">
             <label style="font-size:12px;font-weight:600;color:#5c3a1e;display:flex;align-items:center;gap:6px;cursor:pointer">
@@ -1129,19 +1141,19 @@
       <!-- TODOS LOS GASTOS -->
       <div class="contab-panel" id="contabTodos" style="display:none">
         <div style="display:flex;gap:10px;margin-bottom:14px;flex-wrap:wrap;align-items:flex-end">
-          <div style="flex:1;min-width:140px">
-            <label style="font-size:12px;font-weight:600;color:#5c3a1e;display:block;margin-bottom:2px">Mes</label>
-            <input id="contabFiltroMes" type="month" style="width:100%;padding:8px;border:1px solid #d4c4b3;border-radius:6px;font-size:13px;background:#fff;height:36px">
+          <div style="flex:1;min-width:140px;display:flex;flex-direction:column">
+            <label style="font-size:12px;font-weight:600;color:#5c3a1e;margin-bottom:4px">Mes</label>
+            <input id="contabFiltroMes" type="month" style="width:100%;padding:8px;border:1px solid #d4c4b3;border-radius:6px;font-size:13px;background:#fff;height:36px;box-sizing:border-box">
           </div>
-          <div style="flex:1;min-width:140px">
-            <label style="font-size:12px;font-weight:600;color:#5c3a1e;display:block;margin-bottom:2px">Categoría</label>
-            <select id="contabFiltroCategoria" style="width:100%;padding:8px;border:1px solid #d4c4b3;border-radius:6px;font-size:13px;background:#fff;height:36px">
+          <div style="flex:1;min-width:140px;display:flex;flex-direction:column">
+            <label style="font-size:12px;font-weight:600;color:#5c3a1e;margin-bottom:4px">Categoría</label>
+            <select id="contabFiltroCategoria" style="width:100%;padding:8px;border:1px solid #d4c4b3;border-radius:6px;font-size:13px;background:#fff;height:36px;box-sizing:border-box">
               <option value="">Todas</option>
             </select>
           </div>
-          <button id="contabFiltrarGastos" style="background:#5c3a1e;color:#fff;border:none;padding:8px 18px;border-radius:6px;cursor:pointer;font-size:13px;font-weight:600;height:36px">Filtrar</button>
-          <button id="contabLimpiarFiltros" style="background:#e8ddd2;color:#5c3a1e;border:none;padding:8px 14px;border-radius:6px;cursor:pointer;font-size:13px;font-weight:500;height:36px">Limpiar</button>
-          <button id="contabExportarCSV" style="background:#1a6a9e;color:#fff;border:none;padding:8px 14px;border-radius:6px;cursor:pointer;font-size:13px;font-weight:500;height:36px">📥 CSV</button>
+          <button id="contabFiltrarGastos" style="background:#5c3a1e;color:#fff;border:none;padding:0 18px;border-radius:6px;cursor:pointer;font-size:13px;font-weight:600;height:36px;display:inline-flex;align-items:center;justify-content:center">Filtrar</button>
+          <button id="contabLimpiarFiltros" style="background:#e8ddd2;color:#5c3a1e;border:none;padding:0 14px;border-radius:6px;cursor:pointer;font-size:13px;font-weight:500;height:36px;display:inline-flex;align-items:center;justify-content:center">Limpiar</button>
+          <button id="contabExportarCSV" style="background:#1a6a9e;color:#fff;border:none;padding:0 14px;border-radius:6px;cursor:pointer;font-size:13px;font-weight:500;height:36px;display:inline-flex;align-items:center;justify-content:center">📥 CSV</button>
         </div>
         <div id="contabResumenGastos" style="display:flex;gap:8px;margin-bottom:12px"></div>
         <div id="contabListaGastos"></div>
@@ -1150,16 +1162,16 @@
 
       <!-- CATEGORÍAS -->
       <div class="contab-panel" id="contabCategorias" style="display:none">
-        <div style="display:flex;gap:10px;margin-bottom:16px;align-items:flex-end">
-          <div style="flex:1;min-width:200px">
-            <label style="font-size:12px;font-weight:600;color:#5c3a1e;display:block;margin-bottom:4px">Nueva categoría</label>
-            <input id="contabNuevaCat" type="text" placeholder="Nombre" style="width:100%;padding:8px;border:1px solid #d4c4b3;border-radius:6px;font-size:13px;height:36px">
+        <div style="display:flex;gap:10px;margin-bottom:16px;flex-wrap:wrap;align-items:flex-end">
+          <div style="flex:2;min-width:200px;display:flex;flex-direction:column">
+            <label style="font-size:12px;font-weight:600;color:#5c3a1e;margin-bottom:4px">Nueva categoría</label>
+            <input id="contabNuevaCat" type="text" placeholder="Nombre" style="width:100%;padding:8px;border:1px solid #d4c4b3;border-radius:6px;font-size:13px;height:36px;box-sizing:border-box">
           </div>
-          <div style="min-width:80px">
-            <label style="font-size:12px;font-weight:600;color:#5c3a1e;display:block;margin-bottom:4px">Ícono</label>
-            <input id="contabNuevaCatIcono" type="text" value="📦" maxlength="4" style="width:100%;padding:8px;border:1px solid #d4c4b3;border-radius:6px;font-size:16px;text-align:center;height:36px">
+          <div style="flex:1;max-width:100px;min-width:70px;display:flex;flex-direction:column">
+            <label style="font-size:12px;font-weight:600;color:#5c3a1e;margin-bottom:4px">Ícono</label>
+            <input id="contabNuevaCatIcono" type="text" value="📦" maxlength="4" style="width:100%;padding:8px;border:1px solid #d4c4b3;border-radius:6px;font-size:16px;text-align:center;height:36px;box-sizing:border-box">
           </div>
-          <button id="contabCrearCategoria" style="background:#2d6a1e;color:#fff;border:none;padding:8px 18px;border-radius:6px;cursor:pointer;font-size:13px;font-weight:600;height:36px">Crear</button>
+          <button id="contabCrearCategoria" style="background:#2d6a1e;color:#fff;border:none;padding:0 18px;border-radius:6px;cursor:pointer;font-size:13px;font-weight:600;height:36px;display:inline-flex;align-items:center;justify-content:center">Crear</button>
         </div>
         <div id="contabGridCats" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:12px"></div>
       </div>
@@ -1168,39 +1180,39 @@
 
   <!-- MODAL EDITAR GASTO -->
   <div class="modal-overlay" id="modalEditarGasto">
-    <div class="modal" style="width:480px;max-width:95vw">
-      <h2>✏️ Editar Gasto</h2>
+    <div class="modal" style="width:480px;max-width:95vw;box-sizing:border-box">
+      <h2 style="margin-top:0;color:#5c3a1e;font-size:20px">✏️ Editar Gasto</h2>
       <input type="hidden" id="editGastoId">
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px">
         <div>
           <label style="font-size:12px;font-weight:600;color:#5c3a1e;display:block;margin-bottom:4px">Monto ($)</label>
-          <input id="editGastoMonto" type="number" min="0" step="any" style="width:100%;padding:10px;border:2px solid #d4c4b3;border-radius:8px;font-size:16px;font-weight:700">
+          <input id="editGastoMonto" type="number" min="0" step="any" style="width:100%;padding:10px;border:2px solid #d4c4b3;border-radius:8px;font-size:16px;font-weight:700;box-sizing:border-box">
         </div>
         <div>
           <label style="font-size:12px;font-weight:600;color:#5c3a1e;display:block;margin-bottom:4px">Fecha</label>
-          <input id="editGastoFecha" type="date" style="width:100%;padding:10px;border:2px solid #d4c4b3;border-radius:8px;font-size:14px">
+          <input id="editGastoFecha" type="date" style="width:100%;padding:10px;border:2px solid #d4c4b3;border-radius:8px;font-size:14px;box-sizing:border-box;height:45px">
         </div>
       </div>
       <div style="margin-bottom:12px">
         <label style="font-size:12px;font-weight:600;color:#5c3a1e;display:block;margin-bottom:4px">Categoría</label>
-        <select id="editGastoCategoria" style="width:100%;padding:10px;border:2px solid #d4c4b3;border-radius:8px;font-size:14px"></select>
+        <select id="editGastoCategoria" style="width:100%;padding:10px;border:2px solid #d4c4b3;border-radius:8px;font-size:14px;box-sizing:border-box;height:45px;background-color:#fff"></select>
       </div>
       <div style="margin-bottom:12px">
         <label style="font-size:12px;font-weight:600;color:#5c3a1e;display:block;margin-bottom:4px">Concepto</label>
-        <input id="editGastoConcepto" type="text" style="width:100%;padding:10px;border:2px solid #d4c4b3;border-radius:8px;font-size:14px">
+        <input id="editGastoConcepto" type="text" style="width:100%;padding:10px;border:2px solid #d4c4b3;border-radius:8px;font-size:14px;box-sizing:border-box">
       </div>
       <div style="margin-bottom:12px">
         <label style="font-size:12px;font-weight:600;color:#5c3a1e;display:block;margin-bottom:4px">Proveedor</label>
-        <input id="editGastoProveedor" type="text" style="width:100%;padding:10px;border:2px solid #d4c4b3;border-radius:8px;font-size:14px">
+        <input id="editGastoProveedor" type="text" style="width:100%;padding:10px;border:2px solid #d4c4b3;border-radius:8px;font-size:14px;box-sizing:border-box">
       </div>
       <div style="margin-bottom:16px">
         <label style="font-size:12px;font-weight:600;color:#5c3a1e;display:flex;align-items:center;gap:6px;cursor:pointer">
           <input type="checkbox" id="editGastoRecurrente"> Gasto recurrente
         </label>
       </div>
-      <div class="modal-botones">
-        <button class="btn-cancel" id="btnCancelarEditGasto">Cancelar</button>
-        <button class="btn-confirm" id="btnGuardarEditGasto">Guardar Cambios</button>
+      <div class="modal-botones" style="display:flex;justify-content:flex-end;gap:10px">
+        <button class="btn-cancel" id="btnCancelarEditGasto" style="background:#e8ddd2;color:#5c3a1e;border:none;padding:10px 20px;border-radius:8px;font-weight:600;cursor:pointer">Cancelar</button>
+        <button class="btn-confirm" id="btnGuardarEditGasto" style="background:#5c3a1e;color:#fff;border:none;padding:10px 20px;border-radius:8px;font-weight:600;cursor:pointer">Guardar Cambios</button>
       </div>
     </div>
   </div>
