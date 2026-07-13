@@ -1107,24 +1107,7 @@
           </div>
           <div style="margin-bottom:12px">
             <label style="font-size:12px;font-weight:600;color:#5c3a1e;display:block;margin-bottom:4px">Categoría</label>
-            <div style="display:flex;gap:8px;align-items:center">
-              <select id="contabCategoria" style="flex:1;padding:10px;border:2px solid #d4c4b3;border-radius:8px;font-size:14px"></select>
-              <button id="contabNuevaCatInline" style="background:#5c3a1e;color:#fff;border:none;padding:8px 12px;border-radius:8px;cursor:pointer;font-size:13px;font-weight:600;white-space:nowrap" title="Crear nueva categoría">+ Nueva</button>
-            </div>
-            <div id="contabFormNuevaCat" style="display:none;margin-top:8px;background:#faf7f4;border-radius:8px;padding:12px;border:1px solid #e0d6ca">
-              <div style="display:flex;gap:8px;align-items:flex-end">
-                <div style="flex:0 0 50px">
-                  <label style="font-size:11px;font-weight:600;color:#5c3a1e;display:block;margin-bottom:2px">Ícono</label>
-                  <input id="contabInlineCatIcono" type="text" value="📦" maxlength="4" style="width:100%;padding:7px;border:1px solid #d4c4b3;border-radius:6px;font-size:16px;text-align:center;height:34px">
-                </div>
-                <div style="flex:1">
-                  <label style="font-size:11px;font-weight:600;color:#5c3a1e;display:block;margin-bottom:2px">Nombre</label>
-                  <input id="contabInlineCatNombre" type="text" placeholder="Nombre de la categoría" style="width:100%;padding:7px;border:1px solid #d4c4b3;border-radius:6px;font-size:13px;height:34px">
-                </div>
-                <button id="contabGuardarCatInline" style="background:#2d6a1e;color:#fff;border:none;padding:7px 14px;border-radius:6px;cursor:pointer;font-size:13px;font-weight:600;height:34px">Crear</button>
-                <button id="contabCancelarCatInline" style="background:#e8ddd2;color:#5c3a1e;border:none;padding:7px 10px;border-radius:6px;cursor:pointer;font-size:13px;height:34px">✕</button>
-              </div>
-            </div>
+            <select id="contabCategoria" style="width:100%;padding:10px;border:2px solid #d4c4b3;border-radius:8px;font-size:14px"></select>
           </div>
           <div style="margin-bottom:12px">
             <label style="font-size:12px;font-weight:600;color:#5c3a1e;display:block;margin-bottom:4px">Concepto</label>
@@ -3907,35 +3890,6 @@
       _contabCategoriasCache = await api.getCategoriasGasto();
       cargarCategoriasContabilidad();
       cargarSelectCategorias();
-    });
-
-    // Nueva categoría inline (desde pestaña Registrar)
-    document.getElementById('contabNuevaCatInline').addEventListener('click', () => {
-      const form = document.getElementById('contabFormNuevaCat');
-      form.style.display = form.style.display === 'none' ? 'block' : 'none';
-      document.getElementById('contabInlineCatNombre').value = '';
-      document.getElementById('contabInlineCatIcono').value = '📦';
-      document.getElementById('contabInlineCatNombre').focus();
-    });
-
-    document.getElementById('contabCancelarCatInline').addEventListener('click', () => {
-      document.getElementById('contabFormNuevaCat').style.display = 'none';
-    });
-
-    document.getElementById('contabGuardarCatInline').addEventListener('click', async () => {
-      const nombre = document.getElementById('contabInlineCatNombre').value.trim();
-      const icono = document.getElementById('contabInlineCatIcono').value.trim() || '📦';
-      if (!nombre) return mostrarNotificacion('Ingresá un nombre', 'error');
-      const res = await api.createCategoriaGasto({ nombre, icono });
-      if (!res.success) return mostrarNotificacion(res.error, 'error');
-      mostrarNotificacion('Categoría creada', 'exito');
-      sonidoExito();
-      document.getElementById('contabFormNuevaCat').style.display = 'none';
-      _contabCategoriasCache = await api.getCategoriasGasto();
-      cargarSelectCategorias();
-      // Seleccionar recién creada
-      const nueva = _contabCategoriasCache.find(c => c.nombre === nombre);
-      if (nueva) document.getElementById('contabCategoria').value = nueva.id;
     });
 
     window.contabEliminarCategoria = async function(id, nombre) {
