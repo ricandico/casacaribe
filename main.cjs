@@ -1,9 +1,23 @@
 const { app, BrowserWindow, ipcMain } = require('electron');
 const path = require('path');
+const fs = require('fs');
 const Database = require('better-sqlite3');
 
 let db;
 let mainWindow;
+
+function getDbPath() {
+  const appDataPath = app.getPath('userData');
+  const dbPath = path.join(appDataPath, 'panaderia.db');
+  // Si no existe en AppData, copiar desde la carpeta de la app
+  if (!fs.existsSync(dbPath)) {
+    const localDb = path.join(__dirname, 'panaderia.db');
+    if (fs.existsSync(localDb)) {
+      fs.copyFileSync(localDb, dbPath);
+    }
+  }
+  return dbPath;
+}
 
 function createWindow() {
   mainWindow = new BrowserWindow({
@@ -20,7 +34,7 @@ function createWindow() {
 }
 
 app.whenReady().then(() => {
-  db = new Database('panaderia.db');
+  db = new Database(getDbPath());
 
   // Crear tablas base si no existen
   db.prepare(`
@@ -112,6 +126,12 @@ app.whenReady().then(() => {
     if (!colVentas.find(c => c.name === 'usuario_id')) {
       db.prepare("ALTER TABLE ventas ADD COLUMN usuario_id INTEGER").run();
     }
+    if (!colVentas.find(c => c.name === 'descuento')) {
+      db.prepare("ALTER TABLE ventas ADD COLUMN descuento REAL DEFAULT 0").run();
+    }
+    if (!colVentas.find(c => c.name === 'total_con_descuento')) {
+      db.prepare("ALTER TABLE ventas ADD COLUMN total_con_descuento REAL DEFAULT 0").run();
+    }
   } catch(e) { /* tabla ventas no existe */ }
 
   db.prepare(`
@@ -149,6 +169,20 @@ app.whenReady().then(() => {
       fecha TEXT DEFAULT (datetime('now', 'localtime')),
       usuario_id INTEGER,
       usuario_nombre TEXT,
+      FOREIGN KEY (usuario_id) REFERENCES usuarios(id)
+    )
+  `).run();
+
+  db.prepare(`
+    CREATE TABLE IF NOT EXISTS descartes (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      producto_id INTEGER NOT NULL,
+      cantidad REAL NOT NULL,
+      motivo TEXT,
+      fecha TEXT DEFAULT (datetime('now', 'localtime')),
+      usuario_id INTEGER,
+      usuario_nombre TEXT,
+      FOREIGN KEY (producto_id) REFERENCES productos(id),
       FOREIGN KEY (usuario_id) REFERENCES usuarios(id)
     )
   `).run();
@@ -259,7 +293,14 @@ app.whenReady().then(() => {
   createWindow();
 
   ipcMain.handle('get-categories', () => {
-    return db.prepare('SELECT DISTINCT categoria FROM productos ORDER BY categoria').all();
+    const cats = db.prepare('SELECT DISTINCT categoria FROM productos ORDER BY categoria').all();
+    // Siempre incluir categorías base
+    const base = ['Panadería', 'Pastelería', 'Facturas', 'Salado', 'Bebidas', 'Otros'];
+    const existentes = new Set(cats.map(c => c.categoria));
+    for (const c of base) {
+      if (!existentes.has(c)) cats.push({ categoria: c });
+    }
+    return cats.sort((a, b) => a.categoria.localeCompare(b.categoria));
   });
 
   ipcMain.handle('get-products-by-category', (_, category) => {
@@ -273,7 +314,7 @@ app.whenReady().then(() => {
     return db.prepare('SELECT * FROM productos ORDER BY categoria, nombre').all();
   });
 
-  ipcMain.handle('create-sale', (_, { items, total, pagos, notas, usuario_id, usuario_nombre }) => {
+  ipcMain.handle('create-sale', (_, { items, total, descuento, total_con_descuento, pagos, notas, usuario_id, usuario_nombre }) => {
     const hoy = new Date().toISOString().slice(0, 10);
     const apertura = db.prepare('SELECT id, hora FROM apertura_caja WHERE usuario_id = ? AND fecha = ? ORDER BY id DESC LIMIT 1').get(usuario_id, hoy);
     if (!apertura) return { success: false, error: 'No hay caja abierta. Abrí la caja primero.' };
@@ -282,12 +323,13 @@ app.whenReady().then(() => {
 
     const crearVenta = db.transaction(() => {
       const montoPagado = pagos.reduce((s, p) => s + p.monto, 0);
-      const saldoPendiente = Math.max(0, total - montoPagado);
+      const totalFinal = total_con_descuento || Math.max(0, (total || 0) - (descuento || 0));
+      const saldoPendiente = Math.max(0, totalFinal - montoPagado);
       const estado = saldoPendiente > 0 ? 'pendiente' : 'completada';
 
       const result = db.prepare(
-        'INSERT INTO ventas (total, metodo_pago, notas, usuario_id, usuario_nombre, estado, saldo_pendiente) VALUES (?, ?, ?, ?, ?, ?, ?)'
-      ).run(total, pagos.map(p => `${p.metodo}: $${p.monto}`).join('; '), notas || null, usuario_id || null, usuario_nombre || null, estado, saldoPendiente);
+        'INSERT INTO ventas (total, metodo_pago, notas, usuario_id, usuario_nombre, estado, saldo_pendiente, descuento, total_con_descuento) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)'
+      ).run(total, pagos.map(p => `${p.metodo}: $${p.monto}`).join('; '), notas || null, usuario_id || null, usuario_nombre || null, estado, saldoPendiente, descuento || 0, totalFinal);
 
       const ventaId = result.lastInsertRowid;
 
@@ -330,9 +372,25 @@ app.whenReady().then(() => {
   });
 
   ipcMain.handle('create-product', (_, { nombre, variante, categoria, precio_venta, stock_actual, codigo }) => {
+    // Validar que no exista un producto con el mismo nombre
+    const existente = db.prepare('SELECT id, codigo FROM productos WHERE nombre = ?').get(nombre);
+    if (existente) {
+      return { success: false, error: `Ya existe un producto con ese nombre (código: ${existente.codigo})` };
+    }
+
+    // Si no se envía código, generar el siguiente incremental basado en el código más alto
+    if (!codigo) {
+      const lastProd = db.prepare("SELECT codigo FROM productos WHERE codigo != '' AND codigo IS NOT NULL ORDER BY CAST(codigo AS INTEGER) DESC LIMIT 1").get();
+      let nextNum = 1;
+      if (lastProd && lastProd.codigo) {
+        const num = parseInt(lastProd.codigo, 10);
+        if (!isNaN(num)) nextNum = num + 1;
+      }
+      codigo = String(nextNum).padStart(3, '0');
+    }
     const result = db.prepare('INSERT INTO productos (nombre, variante, categoria, precio_venta, stock_actual, codigo) VALUES (?, ?, ?, ?, ?, ?)')
-      .run(nombre, variante || 'Estándar', categoria, precio_venta, stock_actual || 0, codigo || '');
-    return { success: true, id: result.lastInsertRowid };
+      .run(nombre, variante || 'Estándar', categoria, precio_venta, stock_actual || 0, codigo);
+    return { success: true, id: result.lastInsertRowid, codigo };
   });
 
   ipcMain.handle('delete-product', (_, id) => {
@@ -340,16 +398,22 @@ app.whenReady().then(() => {
     return { success: true };
   });
 
-  ipcMain.handle('get-sales', () => {
-    return db.prepare(`
+  ipcMain.handle('get-sales', (_, { usuario_id, rol }) => {
+    let query = `
       SELECT v.id, v.fecha_hora, v.total, v.metodo_pago, v.notas,
              COUNT(dv.id) as items_count, v.saldo_pendiente, v.fecha_cobro,
-             v.usuario_nombre
+             v.usuario_nombre, v.descuento, v.total_con_descuento
       FROM ventas v
       LEFT JOIN detalle_ventas dv ON dv.venta_id = v.id
-      GROUP BY v.id
-      ORDER BY v.id DESC
-    `).all();
+    `;
+    if (rol !== 'admin') {
+      query += ` WHERE v.usuario_id = ? `;
+    }
+    query += ` GROUP BY v.id ORDER BY v.id DESC`;
+    if (rol !== 'admin') {
+      return db.prepare(query).all(usuario_id);
+    }
+    return db.prepare(query).all();
   });
 
   ipcMain.handle('login', (_, { username, password }) => {
@@ -386,12 +450,17 @@ app.whenReady().then(() => {
   ipcMain.handle('get-cierre', (_, { usuario_id }) => {
     const hoy = new Date().toISOString().slice(0, 10);
     const apertura = db.prepare('SELECT id, saldo_inicial, hora FROM apertura_caja WHERE usuario_id = ? AND fecha = ? ORDER BY id DESC LIMIT 1').get(usuario_id, hoy);
-    const desdeApertura = apertura ? apertura.hora : '00:00:00';
-    const saldoInicial = apertura ? apertura.saldo_inicial : 0;
-    const aperturaId = apertura ? apertura.id : null;
+
+    if (!apertura) {
+      return { ventas: [], total: 0, totalDescuentos: 0, cantidad: 0, porPago: {}, usuario: '', movimientos: [], totalIngresos: 0, totalEgresos: 0, porPagoPagos: {}, porPagoCobros: {}, yaCerrado: false, saldoInicial: 0, aperturaId: null };
+    }
+
+    const desdeApertura = apertura.hora;
+    const saldoInicial = apertura.saldo_inicial;
+    const aperturaId = apertura.id;
 
     const ventas = db.prepare(`
-      SELECT v.id, v.fecha_hora, v.total, v.notas,
+      SELECT v.id, v.fecha_hora, v.total, v.notas, v.descuento, v.total_con_descuento,
              COUNT(dv.id) as items_count
       FROM ventas v
       LEFT JOIN detalle_ventas dv ON dv.venta_id = v.id
@@ -400,7 +469,12 @@ app.whenReady().then(() => {
       ORDER BY v.id
     `).all(usuario_id, desdeApertura);
 
-    const totalVentas = ventas.reduce((s, v) => s + v.total, 0);
+    const totalVentas = ventas.reduce((s, v) => {
+      const totalFinal = (v.total_con_descuento && v.total_con_descuento > 0) ? v.total_con_descuento : Math.max(0, v.total - (v.descuento || 0));
+      return s + totalFinal;
+    }, 0);
+
+    const totalDescuentos = ventas.reduce((s, v) => s + (v.descuento || 0), 0);
 
     const porPagoPagos = db.prepare(`
       SELECT p.metodo, COALESCE(SUM(p.monto), 0) as total
@@ -437,7 +511,7 @@ app.whenReady().then(() => {
 
     const yaCerrado = aperturaId ? !!db.prepare('SELECT id FROM cierres WHERE apertura_id = ?').get(aperturaId) : false;
 
-    return { ventas, total: totalVentas, cantidad: ventas.length, porPago, usuario: usuario?.username || '', movimientos, totalIngresos, totalEgresos, porPagoPagos, porPagoCobros, yaCerrado, saldoInicial, aperturaId };
+    return { ventas, total: totalVentas, totalDescuentos, cantidad: ventas.length, porPago, usuario: usuario?.username || '', movimientos, totalIngresos, totalEgresos, porPagoPagos, porPagoCobros, yaCerrado, saldoInicial, aperturaId };
   });
 
   ipcMain.handle('confirmar-cierre', (_, { usuario_id, total, cantidad, por_pago, por_pago_ventas, por_pago_cobros, efectivo_contado, efectivo_retiro, efectivo_dejado, total_mp, total_transferencia, saldo_inicial, apertura_id }) => {
@@ -498,8 +572,13 @@ app.whenReady().then(() => {
   ipcMain.handle('get-today-total', (_, usuario_id) => {
     const hoy = new Date().toISOString().slice(0, 10);
     const apertura = db.prepare('SELECT id, hora FROM apertura_caja WHERE usuario_id = ? AND fecha = ? ORDER BY id DESC LIMIT 1').get(usuario_id, hoy);
-    const desdeApertura = apertura ? apertura.hora : '00:00:00';
-    const yaCerrado = apertura ? !!db.prepare('SELECT id FROM cierres WHERE apertura_id = ?').get(apertura.id) : false;
+
+    if (!apertura) {
+      return { cantidad: 0, total: 0, saldo_pendiente: 0, pendiente: 0 };
+    }
+
+    const desdeApertura = apertura.hora;
+    const yaCerrado = !!db.prepare('SELECT id FROM cierres WHERE apertura_id = ?').get(apertura.id);
 
     const res = db.prepare(`
       SELECT COUNT(*) as cantidad, COALESCE(SUM(total), 0) as total,
@@ -511,8 +590,12 @@ app.whenReady().then(() => {
   });
 
   ipcMain.handle('cobrar-pendiente', (_, { venta_id, monto, metodo, usuario_id, usuario_nombre }) => {
+    const hoy = new Date().toISOString().slice(0, 10);
+    const apertura = db.prepare('SELECT id FROM apertura_caja WHERE usuario_id = ? AND fecha = ?').get(usuario_id, hoy);
+    if (!apertura) return { error: 'No tenés caja abierta. Abrila antes de cobrar.' };
+
     const venta = db.prepare('SELECT saldo_pendiente FROM ventas WHERE id = ?').get(venta_id);
-    if (!venta) return { success: false, error: 'Venta no encontrada' };
+    if (!venta) return { error: 'Venta no encontrada' };
 
     const nuevoSaldo = Math.max(0, venta.saldo_pendiente - monto);
     const estado = nuevoSaldo <= 0 ? 'completada' : 'pendiente';
@@ -520,21 +603,39 @@ app.whenReady().then(() => {
 
     db.prepare(`UPDATE ventas SET estado = ?, saldo_pendiente = ?${fechaCobro} WHERE id = ?`).run(estado, nuevoSaldo, venta_id);
     db.prepare('INSERT INTO cobros (venta_id, monto, metodo, usuario_id, usuario_nombre) VALUES (?, ?, ?, ?, ?)').run(venta_id, monto, metodo || 'Efectivo', usuario_id || null, usuario_nombre || null);
+
+    if (monto > 0) {
+      db.prepare('INSERT INTO movimientos_caja (tipo, monto, concepto, usuario_id, usuario_nombre) VALUES (?, ?, ?, ?, ?)').run(
+        'ingreso', monto, `Cobro venta #${venta_id} - regularización`, usuario_id || null, usuario_nombre || null
+      );
+    }
+
     return { success: true, estado, nuevoSaldo };
   });
 
-  ipcMain.handle('get-pendientes', () => {
-    return db.prepare(`
+  ipcMain.handle('get-pendientes', (_, { usuario_id, rol }) => {
+    let query = `
       SELECT v.id, v.fecha_hora, v.total, v.saldo_pendiente, v.notas,
              u.username
       FROM ventas v
       JOIN usuarios u ON u.id = v.usuario_id
       WHERE v.estado = 'pendiente'
-      ORDER BY v.fecha_hora DESC
-    `).all();
+    `;
+    if (rol !== 'admin') {
+      query += ` AND v.usuario_id = ? `;
+    }
+    query += ` ORDER BY v.fecha_hora DESC`;
+    if (rol !== 'admin') {
+      return db.prepare(query).all(usuario_id);
+    }
+    return db.prepare(query).all();
   });
 
-  ipcMain.handle('get-sale-detail', (_, saleId) => {
+  ipcMain.handle('get-sale-detail', (_, { saleId, usuario_id, rol }) => {
+    if (rol !== 'admin') {
+      const venta = db.prepare('SELECT usuario_id FROM ventas WHERE id = ?').get(saleId);
+      if (!venta || venta.usuario_id !== usuario_id) return [];
+    }
     return db.prepare(`
       SELECT dv.cantidad, dv.precio_unitario, dv.subtotal,
              p.nombre, p.variante
@@ -545,8 +646,195 @@ app.whenReady().then(() => {
     `).all(saleId);
   });
 
+  ipcMain.handle('add-item-to-sale', (_, { venta_id, producto_id, cantidad, precio_unitario, subtotal, usuario_id }) => {
+    const venta = db.prepare('SELECT * FROM ventas WHERE id = ?').get(venta_id);
+    if (!venta) return { success: false, error: 'Venta no encontrada' };
+
+    // Validar que la caja del usuario esté abierta
+    const hoy = new Date().toISOString().slice(0, 10);
+    const ventaUsuarioId = venta.usuario_id || usuario_id;
+    const apertura = db.prepare('SELECT id FROM apertura_caja WHERE usuario_id = ? AND fecha = ? ORDER BY id DESC LIMIT 1').get(ventaUsuarioId, hoy);
+    if (!apertura) return { success: false, error: 'No hay caja abierta. Abrí la caja primero.' };
+    const tieneCierre = db.prepare('SELECT id FROM cierres WHERE apertura_id = ?').get(apertura.id);
+    if (tieneCierre) return { success: false, error: 'La caja ya está cerrada. No se pueden agregar productos.' };
+
+    // Validar stock
+    const producto = db.prepare('SELECT stock_actual FROM productos WHERE id = ?').get(producto_id);
+    if (!producto) return { success: false, error: 'Producto no encontrado' };
+    if (producto.stock_actual < cantidad) return { success: false, error: 'Stock insuficiente' };
+
+    const agregarItem = db.transaction(() => {
+      // Insertar detalle
+      db.prepare(
+        'INSERT INTO detalle_ventas (venta_id, producto_id, cantidad, precio_unitario, subtotal) VALUES (?, ?, ?, ?, ?)'
+      ).run(venta_id, producto_id, cantidad, precio_unitario, subtotal);
+
+      // Descontar stock
+      db.prepare('UPDATE productos SET stock_actual = stock_actual - ? WHERE id = ?').run(cantidad, producto_id);
+
+      // Actualizar total de la venta
+      const nuevoTotal = venta.total + subtotal;
+      const nuevoTotalConDescuento = (venta.total_con_descuento || venta.total) + subtotal;
+
+      if (venta.estado === 'pendiente' && venta.saldo_pendiente > 0) {
+        // Si la venta tiene saldo pendiente, aumentar el saldo también
+        const nuevoSaldo = venta.saldo_pendiente + subtotal;
+        db.prepare('UPDATE ventas SET total = ?, total_con_descuento = ?, saldo_pendiente = ? WHERE id = ?')
+          .run(nuevoTotal, nuevoTotalConDescuento, nuevoSaldo, venta_id);
+      } else {
+        db.prepare('UPDATE ventas SET total = ?, total_con_descuento = ? WHERE id = ?')
+          .run(nuevoTotal, nuevoTotalConDescuento, venta_id);
+      }
+
+      return { success: true };
+    });
+
+    return agregarItem();
+  });
+
+  ipcMain.handle('get-sale-full-detail', (_, { venta_id, usuario_id, rol }) => {
+    const venta = db.prepare('SELECT * FROM ventas WHERE id = ?').get(venta_id);
+    if (!venta) return null;
+    if (rol !== 'admin' && venta.usuario_id !== usuario_id) return null;
+    const items = db.prepare(`
+      SELECT dv.id, dv.producto_id, dv.cantidad, dv.precio_unitario, dv.subtotal,
+             p.nombre, p.variante, p.codigo, p.stock_actual
+      FROM detalle_ventas dv
+      JOIN productos p ON p.id = dv.producto_id
+      WHERE dv.venta_id = ?
+      ORDER BY dv.id
+    `).all(venta_id);
+    const pagos = db.prepare('SELECT * FROM pagos WHERE venta_id = ? ORDER BY id').all(venta_id);
+    return { ...venta, items, pagos };
+  });
+
+  ipcMain.handle('update-sale-item-quantity', (_, { detalle_id, nueva_cantidad, usuario_id }) => {
+    const detalle = db.prepare('SELECT * FROM detalle_ventas WHERE id = ?').get(detalle_id);
+    if (!detalle) return { success: false, error: 'Item no encontrado' };
+
+    const venta = db.prepare('SELECT * FROM ventas WHERE id = ?').get(detalle.venta_id);
+    if (!venta) return { success: false, error: 'Venta no encontrada' };
+
+    // Validar caja abierta
+    const hoy = new Date().toISOString().slice(0, 10);
+    const ventaUsuarioId = venta.usuario_id || usuario_id;
+    const apertura = db.prepare('SELECT id FROM apertura_caja WHERE usuario_id = ? AND fecha = ? ORDER BY id DESC LIMIT 1').get(ventaUsuarioId, hoy);
+    if (!apertura) return { success: false, error: 'No hay caja abierta' };
+    const tieneCierre = db.prepare('SELECT id FROM cierres WHERE apertura_id = ?').get(apertura.id);
+    if (tieneCierre) return { success: false, error: 'La caja ya está cerrada' };
+
+    const diferencia = nueva_cantidad - detalle.cantidad;
+    const producto = db.prepare('SELECT stock_actual FROM productos WHERE id = ?').get(detalle.producto_id);
+    if (!producto) return { success: false, error: 'Producto no encontrado' };
+
+    // Si se aumenta cantidad, validar stock
+    if (diferencia > 0 && producto.stock_actual < diferencia) {
+      return { success: false, error: 'Stock insuficiente' };
+    }
+
+    const nuevoSubtotal = nueva_cantidad * detalle.precio_unitario;
+    const diferenciaSubtotal = nuevoSubtotal - detalle.subtotal;
+
+    const actualizar = db.transaction(() => {
+      // Actualizar detalle
+      db.prepare('UPDATE detalle_ventas SET cantidad = ?, subtotal = ? WHERE id = ?')
+        .run(nueva_cantidad, nuevoSubtotal, detalle_id);
+
+      // Ajustar stock
+      db.prepare('UPDATE productos SET stock_actual = stock_actual - ? WHERE id = ?')
+        .run(diferencia, detalle.producto_id);
+
+      // Actualizar totales de venta
+      const nuevoTotal = venta.total + diferenciaSubtotal;
+      const nuevoTotalConDescuento = (venta.total_con_descuento || venta.total) + diferenciaSubtotal;
+
+      if (venta.estado === 'pendiente' && venta.saldo_pendiente > 0) {
+        const nuevoSaldo = venta.saldo_pendiente + diferenciaSubtotal;
+        db.prepare('UPDATE ventas SET total = ?, total_con_descuento = ?, saldo_pendiente = ? WHERE id = ?')
+          .run(nuevoTotal, nuevoTotalConDescuento, Math.max(0, nuevoSaldo), venta.id);
+      } else {
+        db.prepare('UPDATE ventas SET total = ?, total_con_descuento = ? WHERE id = ?')
+          .run(nuevoTotal, nuevoTotalConDescuento, venta.id);
+      }
+
+      return { success: true };
+    });
+
+    return actualizar();
+  });
+
+  ipcMain.handle('remove-sale-item', (_, { detalle_id, usuario_id }) => {
+    const detalle = db.prepare('SELECT * FROM detalle_ventas WHERE id = ?').get(detalle_id);
+    if (!detalle) return { success: false, error: 'Item no encontrado' };
+
+    const venta = db.prepare('SELECT * FROM ventas WHERE id = ?').get(detalle.venta_id);
+    if (!venta) return { success: false, error: 'Venta no encontrada' };
+
+    // Validar caja abierta
+    const hoy = new Date().toISOString().slice(0, 10);
+    const ventaUsuarioId = venta.usuario_id || usuario_id;
+    const apertura = db.prepare('SELECT id FROM apertura_caja WHERE usuario_id = ? AND fecha = ? ORDER BY id DESC LIMIT 1').get(ventaUsuarioId, hoy);
+    if (!apertura) return { success: false, error: 'No hay caja abierta' };
+    const tieneCierre = db.prepare('SELECT id FROM cierres WHERE apertura_id = ?').get(apertura.id);
+    if (tieneCierre) return { success: false, error: 'La caja ya está cerrada' };
+
+    const eliminar = db.transaction(() => {
+      // Eliminar detalle
+      db.prepare('DELETE FROM detalle_ventas WHERE id = ?').run(detalle_id);
+
+      // Restaurar stock
+      db.prepare('UPDATE productos SET stock_actual = stock_actual + ? WHERE id = ?')
+        .run(detalle.cantidad, detalle.producto_id);
+
+      // Actualizar totales de venta
+      const nuevoTotal = Math.max(0, venta.total - detalle.subtotal);
+      const nuevoTotalConDescuento = Math.max(0, (venta.total_con_descuento || venta.total) - detalle.subtotal);
+
+      if (venta.estado === 'pendiente' && venta.saldo_pendiente > 0) {
+        const nuevoSaldo = Math.max(0, venta.saldo_pendiente - detalle.subtotal);
+        const nuevoEstado = nuevoSaldo <= 0 ? 'completada' : 'pendiente';
+        db.prepare('UPDATE ventas SET total = ?, total_con_descuento = ?, saldo_pendiente = ?, estado = ? WHERE id = ?')
+          .run(nuevoTotal, nuevoTotalConDescuento, nuevoSaldo, nuevoEstado, venta.id);
+      } else {
+        db.prepare('UPDATE ventas SET total = ?, total_con_descuento = ? WHERE id = ?')
+          .run(nuevoTotal, nuevoTotalConDescuento, venta.id);
+      }
+
+      return { success: true };
+    });
+
+    return eliminar();
+  });
+
   ipcMain.handle('get-cobros', (_, venta_id) => {
     return db.prepare('SELECT id, monto, metodo, fecha, usuario_nombre FROM cobros WHERE venta_id = ? ORDER BY fecha ASC').all(venta_id);
+  });
+
+  ipcMain.handle('update-sale-payments', (_, { venta_id, pagos, usuario_id }) => {
+    const hoy = new Date().toISOString().slice(0, 10);
+    const apertura = db.prepare('SELECT id FROM apertura_caja WHERE usuario_id = ? AND fecha = ?').get(usuario_id, hoy);
+    if (!apertura) return { error: 'No tenés caja abierta. Abrila para editar pagos.' };
+
+    const venta = db.prepare('SELECT total_con_descuento, estado FROM ventas WHERE id = ?').get(venta_id);
+    if (!venta) return { error: 'Venta no encontrada' };
+
+    const totalPagado = pagos.reduce((s, p) => s + (p.monto || 0), 0);
+    const nuevoSaldo = Math.max(0, (venta.total_con_descuento || 0) - totalPagado);
+    const nuevoEstado = nuevoSaldo <= 0 ? 'completada' : 'pendiente';
+    const metodoPago = pagos.filter(p => p.monto > 0).map(p => `${p.metodo}: $${p.monto}`).join('; ') || 'Sin pago';
+
+    const actualizar = db.transaction(() => {
+      db.prepare('DELETE FROM pagos WHERE venta_id = ?').run(venta_id);
+      const insert = db.prepare('INSERT INTO pagos (venta_id, metodo, monto) VALUES (?, ?, ?)');
+      for (const p of pagos) {
+        if (p.monto > 0) insert.run(venta_id, p.metodo, p.monto);
+      }
+      db.prepare('UPDATE ventas SET metodo_pago = ?, saldo_pendiente = ?, estado = ? WHERE id = ?')
+        .run(metodoPago, nuevoSaldo, nuevoEstado, venta_id);
+    });
+    actualizar();
+
+    return { success: true, saldo_pendiente: nuevoSaldo, estado: nuevoEstado, metodo_pago: metodoPago };
   });
 
   ipcMain.handle('add-movimiento-caja', (_, { tipo, monto, concepto, usuario_id, usuario_nombre }) => {
@@ -571,6 +859,52 @@ app.whenReady().then(() => {
   ipcMain.handle('delete-movimiento-caja', (_, id) => {
     db.prepare('DELETE FROM movimientos_caja WHERE id = ?').run(id);
     return { success: true };
+  });
+
+  ipcMain.handle('get-movimientos-por-apertura', (_, { apertura_id }) => {
+    if (!apertura_id) return [];
+    const apertura = db.prepare('SELECT usuario_id, hora FROM apertura_caja WHERE id = ?').get(apertura_id);
+    if (!apertura) return [];
+    return db.prepare(`
+      SELECT id, tipo, monto, concepto, fecha, usuario_nombre
+      FROM movimientos_caja
+      WHERE usuario_id = ? AND fecha >= ?
+      ORDER BY id DESC
+    `).all(apertura.usuario_id, apertura.hora);
+  });
+
+  ipcMain.handle('get-historial-movimientos', (_, { desde, hasta, usuario_id, tipo }) => {
+    let conditions = [];
+    let params = [];
+
+    if (desde && hasta) {
+      conditions.push(`m.fecha >= ? AND m.fecha <= ? || ' 23:59:59'`);
+      params.push(desde, hasta);
+    }
+
+    if (usuario_id) {
+      conditions.push(`m.usuario_id = ?`);
+      params.push(usuario_id);
+    }
+
+    if (tipo && tipo !== 'todos') {
+      conditions.push(`m.tipo = ?`);
+      params.push(tipo);
+    }
+
+    const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
+
+    const movimientos = db.prepare(`
+      SELECT m.id, m.tipo, m.monto, m.concepto, m.fecha, m.usuario_id, m.usuario_nombre
+      FROM movimientos_caja m
+      ${whereClause}
+      ORDER BY m.fecha DESC
+    `).all(...params);
+
+    const totalIngresos = movimientos.filter(m => m.tipo === 'ingreso').reduce((s, m) => s + m.monto, 0);
+    const totalEgresos = movimientos.filter(m => m.tipo === 'egreso').reduce((s, m) => s + m.monto, 0);
+
+    return { movimientos, totalIngresos, totalEgresos };
   });
 
   ipcMain.handle('abrir-caja', (_, { usuario_id, saldo_inicial }) => {
@@ -607,6 +941,114 @@ app.whenReady().then(() => {
     // Reset product stock to 100
     db.prepare('UPDATE productos SET stock_actual = 100').run();
     return { success: true };
+  });
+
+  ipcMain.handle('descartar-producto', (_, { producto_id, cantidad, motivo, usuario_id, usuario_nombre }) => {
+    const producto = db.prepare('SELECT id, stock_actual, nombre FROM productos WHERE id = ?').get(producto_id);
+    if (!producto) return { success: false, error: 'Producto no encontrado' };
+    if (cantidad <= 0) return { success: false, error: 'La cantidad debe ser mayor a 0' };
+    if (cantidad > producto.stock_actual) return { success: false, error: `Stock insuficiente (disponible: ${producto.stock_actual})` };
+
+    const descartar = db.transaction(() => {
+      db.prepare('UPDATE productos SET stock_actual = stock_actual - ? WHERE id = ?').run(cantidad, producto_id);
+      const result = db.prepare(
+        'INSERT INTO descartes (producto_id, cantidad, motivo, usuario_id, usuario_nombre) VALUES (?, ?, ?, ?, ?)'
+      ).run(producto_id, cantidad, motivo || null, usuario_id || null, usuario_nombre || null);
+      return { success: true, id: result.lastInsertRowid };
+    });
+
+    return descartar();
+  });
+
+  ipcMain.handle('get-descartes', () => {
+    return db.prepare(`
+      SELECT d.id, d.cantidad, d.motivo, d.fecha, d.usuario_nombre, p.nombre, p.codigo
+      FROM descartes d
+      JOIN productos p ON p.id = d.producto_id
+      ORDER BY d.id DESC
+    `).all();
+  });
+
+  ipcMain.handle('get-ventas-reporte', (_, { desde, hasta }) => {
+    const filtroFecha = desde && hasta
+      ? `AND v.fecha_hora >= ? AND v.fecha_hora <= ? || ' 23:59:59'`
+      : '';
+    const params = desde && hasta ? [desde, hasta] : [];
+
+    const ventas = db.prepare(`
+      SELECT v.id, v.fecha_hora, v.total, v.total_con_descuento, v.descuento,
+             v.metodo_pago, v.estado, v.saldo_pendiente, v.usuario_nombre,
+             COUNT(dv.id) as items_count
+      FROM ventas v
+      LEFT JOIN detalle_ventas dv ON dv.venta_id = v.id
+      WHERE 1=1 ${filtroFecha}
+      GROUP BY v.id
+      ORDER BY v.fecha_hora ASC
+    `).all(...params);
+
+    const totalVentas = ventas.reduce((s, v) => s + (v.total_con_descuento || v.total || 0), 0);
+    const totalDescuentos = ventas.reduce((s, v) => s + (v.descuento || 0), 0);
+    const cantidadVentas = ventas.length;
+    const promedio = cantidadVentas > 0 ? totalVentas / cantidadVentas : 0;
+    const ventasPendientes = ventas.filter(v => v.estado === 'pendiente');
+    const totalPendiente = ventasPendientes.reduce((s, v) => s + (v.saldo_pendiente || 0), 0);
+
+    const porPago = {};
+    for (const v of ventas) {
+      const partes = (v.metodo_pago || '').split('; ');
+      for (const parte of partes) {
+        const match = parte.match(/^(.+?):\s*\$([\d.,]+)/);
+        if (match) {
+          const metodo = match[1].trim();
+          const monto = parseFloat(match[2].replace(/\./g, '').replace(',', '.')) || 0;
+          porPago[metodo] = (porPago[metodo] || 0) + monto;
+        }
+      }
+    }
+
+    const productosVendidos = db.prepare(`
+      SELECT p.nombre, p.codigo, SUM(dv.cantidad) as total_cantidad,
+             SUM(dv.subtotal) as total_monto
+      FROM detalle_ventas dv
+      JOIN productos p ON p.id = dv.producto_id
+      JOIN ventas v ON v.id = dv.venta_id
+      WHERE 1=1 ${filtroFecha.replace('v.', 'v.')}
+      GROUP BY p.id
+      ORDER BY total_cantidad DESC
+    `).all(...params);
+
+    const stockActual = db.prepare(`
+      SELECT nombre, codigo, stock_actual, categoria
+      FROM productos
+      ORDER BY stock_actual ASC, nombre
+    `).all();
+
+    const stockBajo = stockActual.filter(p => p.stock_actual <= 10);
+
+    const ventasPorDia = {};
+    for (const v of ventas) {
+      const dia = v.fecha_hora ? v.fecha_hora.slice(0, 10) : 'sin fecha';
+      if (!ventasPorDia[dia]) ventasPorDia[dia] = { cantidad: 0, total: 0 };
+      ventasPorDia[dia].cantidad += 1;
+      ventasPorDia[dia].total += (v.total_con_descuento || v.total || 0);
+    }
+
+    return {
+      ventas,
+      resumen: {
+        totalVentas,
+        totalDescuentos,
+        cantidadVentas,
+        promedio,
+        totalPendiente,
+        ventasPendientes: ventasPendientes.length,
+      },
+      porPago,
+      productosVendidos,
+      stockActual,
+      stockBajo,
+      ventasPorDia,
+    };
   });
 
   app.on('activate', () => {
