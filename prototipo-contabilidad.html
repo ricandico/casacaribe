@@ -1,0 +1,640 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Casa Caribe - Prototipo Contabilidad</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    :root {
+      --bg: #f5f0eb;
+      --bg-card: #fff;
+      --bg-sidebar: #4a2e16;
+      --text: #2d2a24;
+      --text-muted: #8a7a6a;
+      --border: #e0d6ca;
+      --accent: #5c3a1e;
+      --green: #2d6a1e;
+      --red: #b33a3a;
+      --yellow: #8a6a00;
+      --blue: #1a6a9e;
+    }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      height: 100vh;
+      display: flex;
+    }
+
+    /* SIDEBAR */
+    .sidebar {
+      width: 240px;
+      min-width: 240px;
+      height: 100vh;
+      background: var(--bg-sidebar);
+      display: flex;
+      flex-direction: column;
+      flex-shrink: 0;
+    }
+    .sidebar-header { padding: 16px 20px; border-bottom: 1px solid rgba(255,255,255,0.1); }
+    .sidebar-header h2 { font-size: 16px; color: #f5f0eb; font-weight: 600; }
+    .sidebar-nav { flex: 1; padding: 12px 0; }
+    .sidebar-btn {
+      display: flex; align-items: center; gap: 12px; width: 100%; padding: 12px 20px;
+      background: none; border: none; color: #f5f0eb; font-size: 14px; font-weight: 500;
+      cursor: pointer; transition: background 0.12s; text-align: left;
+    }
+    .sidebar-btn:hover { background: rgba(255,255,255,0.08); }
+    .sidebar-btn .icon { font-size: 18px; width: 24px; text-align: center; }
+    .sidebar-btn.activo { background: rgba(255,255,255,0.15); border-left: 3px solid #fff; }
+    .sidebar-divider { height: 1px; background: rgba(255,255,255,0.08); margin: 8px 20px; }
+
+    /* MAIN */
+    .app-main { flex: 1; display: flex; flex-direction: column; min-width: 0; }
+    header {
+      background: var(--accent); color: #f5f0eb; padding: 12px 20px;
+      display: flex; justify-content: space-between; align-items: center;
+    }
+    header h1 { font-size: 20px; font-weight: 600; }
+    .header-actions { display: flex; align-items: center; gap: 8px; }
+    .total-venta-header { font-size: 18px; background: rgba(255,255,255,0.15); padding: 8px 16px; border-radius: 8px; font-weight: 700; }
+    .user-info { font-size: 13px; text-align: right; line-height: 1.3; }
+    .user-info .rol { font-size: 11px; opacity: 0.7; }
+
+    .content { flex: 1; padding: 24px; overflow-y: auto; }
+
+    /* TABS */
+    .tabs { display: flex; gap: 4px; margin-bottom: 20px; background: #e8ddd2; border-radius: 10px; padding: 4px; }
+    .tab {
+      flex: 1; padding: 12px 16px; border: none; border-radius: 8px; cursor: pointer;
+      font-size: 14px; font-weight: 600; transition: all 0.15s; background: transparent;
+      color: var(--accent); text-align: center;
+    }
+    .tab:hover { background: rgba(255,255,255,0.5); }
+    .tab.activo { background: var(--accent); color: #fff; }
+
+    .tab-content { display: none; }
+    .tab-content.activo { display: block; }
+
+    /* CARDS RESUMEN */
+    .resumen-cards { display: flex; gap: 12px; margin-bottom: 20px; flex-wrap: wrap; }
+    .resumen-card {
+      flex: 1; min-width: 180px; border-radius: 12px; padding: 18px; text-align: center;
+    }
+    .resumen-card.ingreso { background: #e4f0e0; }
+    .resumen-card.gasto { background: #fde0e0; }
+    .resumen-card.balance { background: #f0f7ff; }
+    .resumen-card.margen { background: #fef3d0; }
+    .resumen-card .label { font-size: 12px; font-weight: 500; margin-bottom: 4px; }
+    .resumen-card.ingreso .label { color: var(--green); }
+    .resumen-card.gasto .label { color: var(--red); }
+    .resumen-card.balance .label { color: var(--blue); }
+    .resumen-card.margen .label { color: var(--yellow); }
+    .resumen-card .valor { font-size: 28px; font-weight: 700; }
+    .resumen-card.ingreso .valor { color: var(--green); }
+    .resumen-card.gasto .valor { color: var(--red); }
+    .resumen-card.balance .valor { color: var(--blue); }
+    .resumen-card.margen .valor { color: var(--yellow); }
+
+    /* FORM */
+    .form-group { margin-bottom: 14px; }
+    .form-group label { display: block; font-size: 13px; font-weight: 600; color: var(--accent); margin-bottom: 4px; }
+    .form-group input, .form-group select, .form-group textarea {
+      width: 100%; padding: 10px 12px; border: 1px solid var(--border); border-radius: 8px;
+      font-size: 14px; background: #faf7f4; color: var(--text);
+    }
+    .form-group textarea { resize: vertical; min-height: 60px; }
+    .form-row { display: flex; gap: 12px; }
+    .form-row .form-group { flex: 1; }
+    .form-check { display: flex; align-items: center; gap: 8px; margin-bottom: 14px; }
+    .form-check input[type="checkbox"] { width: 18px; height: 18px; accent-color: var(--accent); }
+
+    .btn-primary {
+      padding: 12px 24px; background: var(--accent); color: #fff; border: none;
+      border-radius: 8px; font-size: 14px; font-weight: 600; cursor: pointer; transition: opacity 0.15s;
+    }
+    .btn-primary:hover { opacity: 0.85; }
+    .btn-secondary {
+      padding: 10px 18px; background: #e8ddd2; color: var(--accent); border: none;
+      border-radius: 8px; font-size: 13px; font-weight: 500; cursor: pointer;
+    }
+
+    /* LISTA GASTOS */
+    .gasto-item {
+      display: flex; align-items: center; gap: 12px; padding: 12px 16px;
+      background: var(--bg-card); border-radius: 10px; margin-bottom: 8px;
+      border: 1px solid var(--border); transition: box-shadow 0.12s;
+    }
+    .gasto-item:hover { box-shadow: 0 2px 6px rgba(0,0,0,0.08); }
+    .gasto-icon {
+      width: 36px; height: 36px; border-radius: 50%; display: flex; align-items: center;
+      justify-content: center; font-size: 16px; font-weight: 700; flex-shrink: 0;
+    }
+    .gasto-info { flex: 1; }
+    .gasto-info .concepto { font-weight: 500; font-size: 14px; }
+    .gasto-info .meta { font-size: 12px; color: var(--text-muted); margin-top: 2px; }
+    .gasto-monto { font-weight: 700; font-size: 16px; color: var(--red); }
+    .gasto-acciones { display: flex; gap: 4px; }
+    .gasto-acciones button {
+      background: none; border: none; cursor: pointer; font-size: 16px; padding: 4px; opacity: 0.5;
+    }
+    .gasto-acciones button:hover { opacity: 1; }
+
+    /* CHART PLACEHOLDER */
+    .chart-container {
+      background: var(--bg-card); border: 1px solid var(--border); border-radius: 12px;
+      padding: 20px; margin-bottom: 16px;
+    }
+    .chart-title { font-size: 14px; font-weight: 600; color: var(--accent); margin-bottom: 12px; }
+    .bar-chart { display: flex; align-items: flex-end; gap: 8px; height: 160px; padding-top: 10px; }
+    .bar-group { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 4px; }
+    .bar-pair { display: flex; gap: 3px; align-items: flex-end; height: 130px; }
+    .bar {
+      width: 18px; border-radius: 4px 4px 0 0; transition: height 0.5s ease;
+    }
+    .bar.ingreso { background: var(--green); }
+    .bar.gasto { background: var(--red); }
+    .bar-label { font-size: 10px; color: var(--text-muted); text-align: center; }
+    .bar-valor { font-size: 9px; color: var(--text-muted); text-align: center; }
+
+    .legend { display: flex; gap: 16px; margin-top: 12px; justify-content: center; }
+    .legend-item { display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--text-muted); }
+    .legend-dot { width: 10px; height: 10px; border-radius: 50%; }
+
+    /* CATEGORÍAS GRID */
+    .cat-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 10px; margin-bottom: 20px; }
+    .cat-card {
+      background: var(--bg-card); border: 1px solid var(--border); border-radius: 10px;
+      padding: 14px; display: flex; align-items: center; gap: 10px; cursor: pointer;
+      transition: all 0.12s;
+    }
+    .cat-card:hover { border-color: var(--accent); box-shadow: 0 2px 6px rgba(0,0,0,0.08); }
+    .cat-card .cat-icon { font-size: 24px; }
+    .cat-card .cat-name { font-weight: 500; font-size: 14px; }
+    .cat-card .cat-count { font-size: 12px; color: var(--text-muted); }
+
+    /* PAGINACIÓN */
+    .paginacion {
+      display: flex; align-items: center; justify-content: center; gap: 6px;
+      margin-top: 12px; padding-top: 10px; border-top: 1px solid var(--border);
+    }
+    .paginacion button {
+      background: var(--bg-card); border: 1px solid var(--border); color: var(--text);
+      padding: 6px 12px; border-radius: 6px; font-size: 12px; cursor: pointer; min-width: 32px; text-align: center;
+    }
+    .paginacion button:hover { background: var(--border); }
+    .paginacion button.activo { background: var(--accent); color: #fff; border-color: var(--accent); }
+    .paginacion button:disabled { opacity: 0.4; cursor: not-allowed; }
+    .paginacion .pag-info { font-size: 12px; color: var(--text-muted); margin: 0 8px; }
+
+    /* GASTOS RECIENTES */
+    .section-title { font-size: 15px; font-weight: 600; color: var(--accent); margin-bottom: 12px; display: flex; align-items: center; gap: 8px; }
+    .section-title .badge { background: #e8ddd2; color: var(--accent); font-size: 11px; padding: 2px 8px; border-radius: 10px; font-weight: 500; }
+
+    /* EXPORT */
+    .export-bar { display: flex; gap: 8px; margin-bottom: 16px; flex-wrap: wrap; align-items: center; }
+    .export-bar select { padding: 8px 12px; border: 1px solid var(--border); border-radius: 6px; font-size: 13px; background: #fff; }
+  </style>
+</head>
+<body>
+
+  <!-- SIDEBAR -->
+  <div class="sidebar">
+    <div class="sidebar-header"><h2>Casa Caribe</h2></div>
+    <div class="sidebar-nav">
+      <button class="sidebar-btn"><span class="icon">📋</span> Historial</button>
+      <button class="sidebar-btn"><span class="icon">📊</span> Cierre de Jornada</button>
+      <button class="sidebar-btn"><span class="icon">💰</span> Movimientos de Caja</button>
+      <button class="sidebar-btn"><span class="icon">📌</span> Cuentas Pendientes</button>
+      <button class="sidebar-btn"><span class="icon">🗑️</span> Descartar Productos</button>
+      <div class="sidebar-divider"></div>
+      <button class="sidebar-btn"><span class="icon">🔓</span> Abrir Caja</button>
+      <button class="sidebar-btn"><span class="icon">🏷️</span> Gestionar Productos</button>
+      <button class="sidebar-btn"><span class="icon">👥</span> Gestionar Usuarios</button>
+      <div class="sidebar-divider"></div>
+      <button class="sidebar-btn activo"><span class="icon">📊</span> Contabilidad</button>
+      <div class="sidebar-divider"></div>
+      <button class="sidebar-btn"><span class="icon">🚪</span> Cerrar Sesión</button>
+    </div>
+  </div>
+
+  <!-- MAIN -->
+  <div class="app-main">
+    <header>
+      <h1>📊 Contabilidad</h1>
+      <div class="header-actions">
+        <div class="total-venta-header">$ 1.250.000</div>
+        <div class="user-info">
+          <div>admin</div>
+          <div class="rol">Administrador</div>
+        </div>
+      </div>
+    </header>
+
+    <div class="content">
+      <!-- TABS -->
+      <div class="tabs">
+        <button class="tab activo" onclick="cambiarTab('resumen')">📋 Resumen</button>
+        <button class="tab" onclick="cambiarTab('registrar')">➕ Registrar Gasto</button>
+        <button class="tab" onclick="cambiarTab('gastos')">📁 Todos los Gastos</button>
+        <button class="tab" onclick="cambiarTab('categorias')">🏷️ Categorías</button>
+      </div>
+
+      <!-- TAB: RESUMEN -->
+      <div class="tab-content activo" id="tab-resumen">
+        <div class="resumen-cards">
+          <div class="resumen-card ingreso">
+            <div class="label">Ingresos (Julio)</div>
+            <div class="valor">$ 1.850.000</div>
+          </div>
+          <div class="resumen-card gasto">
+            <div class="label">Gastos (Julio)</div>
+            <div class="valor">$ 600.000</div>
+          </div>
+          <div class="resumen-card balance">
+            <div class="label">Balance Neto</div>
+            <div class="valor">$ 1.250.000</div>
+          </div>
+          <div class="resumen-card margen">
+            <div class="label">Margen de Ganancia</div>
+            <div class="valor">67,6%</div>
+          </div>
+        </div>
+
+        <!-- GRÁFICO BARRAS -->
+        <div class="chart-container">
+          <div class="chart-title">Ingresos vs Gastos — Últimos 6 meses</div>
+          <div class="bar-chart">
+            <div class="bar-group">
+              <div class="bar-valor">$480k</div>
+              <div class="bar-pair">
+                <div class="bar ingreso" style="height:80px"></div>
+                <div class="bar gasto" style="height:35px"></div>
+              </div>
+              <div class="bar-label">Feb</div>
+            </div>
+            <div class="bar-group">
+              <div class="bar-valor">$520k</div>
+              <div class="bar-pair">
+                <div class="bar ingreso" style="height:90px"></div>
+                <div class="bar gasto" style="height:40px"></div>
+              </div>
+              <div class="bar-label">Mar</div>
+            </div>
+            <div class="bar-group">
+              <div class="bar-valor">$550k</div>
+              <div class="bar-pair">
+                <div class="bar ingreso" style="height:95px"></div>
+                <div class="bar gasto" style="height:38px"></div>
+              </div>
+              <div class="bar-label">Abr</div>
+            </div>
+            <div class="bar-group">
+              <div class="bar-valor">$610k</div>
+              <div class="bar-pair">
+                <div class="bar ingreso" style="height:105px"></div>
+                <div class="bar gasto" style="height:42px"></div>
+              </div>
+              <div class="bar-label">May</div>
+            </div>
+            <div class="bar-group">
+              <div class="bar-valor">$580k</div>
+              <div class="bar-pair">
+                <div class="bar ingreso" style="height:100px"></div>
+                <div class="bar gasto" style="height:45px"></div>
+              </div>
+              <div class="bar-label">Jun</div>
+            </div>
+            <div class="bar-group">
+              <div class="bar-valor">$600k</div>
+              <div class="bar-pair">
+                <div class="bar ingreso" style="height:110px"></div>
+                <div class="bar gasto" style="height:50px"></div>
+              </div>
+              <div class="bar-label">Jul</div>
+            </div>
+          </div>
+          <div class="legend">
+            <div class="legend-item"><div class="legend-dot" style="background:var(--green)"></div> Ingresos</div>
+            <div class="legend-item"><div class="legend-dot" style="background:var(--red)"></div> Gastos</div>
+          </div>
+        </div>
+
+        <!-- GASTOS POR CATEGORÍA -->
+        <div class="chart-container">
+          <div class="chart-title">Gastos por Categoría — Julio 2026</div>
+          <div style="display:flex;flex-direction:column;gap:8px">
+            <div style="display:flex;align-items:center;gap:10px">
+              <span style="font-size:13px;min-width:100px">Alquiler</span>
+              <div style="flex:1;background:#e8ddd2;border-radius:6px;height:24px;overflow:hidden">
+                <div style="width:60%;height:100%;background:var(--accent);border-radius:6px;display:flex;align-items:center;padding-left:8px">
+                  <span style="color:#fff;font-size:11px;font-weight:600">$ 200.000</span>
+                </div>
+              </div>
+              <span style="font-size:12px;color:var(--text-muted);min-width:40px;text-align:right">33%</span>
+            </div>
+            <div style="display:flex;align-items:center;gap:10px">
+              <span style="font-size:13px;min-width:100px">Servicios</span>
+              <div style="flex:1;background:#e8ddd2;border-radius:6px;height:24px;overflow:hidden">
+                <div style="width:35%;height:100%;background:var(--blue);border-radius:6px;display:flex;align-items:center;padding-left:8px">
+                  <span style="color:#fff;font-size:11px;font-weight:600">$ 115.000</span>
+                </div>
+              </div>
+              <span style="font-size:12px;color:var(--text-muted);min-width:40px;text-align:right">19%</span>
+            </div>
+            <div style="display:flex;align-items:center;gap:10px">
+              <span style="font-size:13px;min-width:100px">Insumos</span>
+              <div style="flex:1;background:#e8ddd2;border-radius:6px;height:24px;overflow:hidden">
+                <div style="width:45%;height:100%;background:var(--yellow);border-radius:6px;display:flex;align-items:center;padding-left:8px">
+                  <span style="color:#fff;font-size:11px;font-weight:600">$ 150.000</span>
+                </div>
+              </div>
+              <span style="font-size:12px;color:var(--text-muted);min-width:40px;text-align:right">25%</span>
+            </div>
+            <div style="display:flex;align-items:center;gap:10px">
+              <span style="font-size:13px;min-width:100px">Impuestos</span>
+              <div style="flex:1;background:#e8ddd2;border-radius:6px;height:24px;overflow:hidden">
+                <div style="width:20%;height:100%;background:var(--red);border-radius:6px;display:flex;align-items:center;padding-left:8px">
+                  <span style="color:#fff;font-size:11px;font-weight:600">$ 70.000</span>
+                </div>
+              </div>
+              <span style="font-size:12px;color:var(--text-muted);min-width:40px;text-align:right">12%</span>
+            </div>
+            <div style="display:flex;align-items:center;gap:10px">
+              <span style="font-size:13px;min-width:100px">Otros</span>
+              <div style="flex:1;background:#e8ddd2;border-radius:6px;height:24px;overflow:hidden">
+                <div style="width:12%;height:100%;background:#8a7a6a;border-radius:6px;display:flex;align-items:center;padding-left:8px">
+                  <span style="color:#fff;font-size:11px;font-weight:600">$ 65.000</span>
+                </div>
+              </div>
+              <span style="font-size:12px;color:var(--text-muted);min-width:40px;text-align:right">11%</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- ÚLTIMOS GASTOS -->
+        <div class="section-title">Gastos recientes <span class="badge">5</span></div>
+        <div class="gasto-item">
+          <div class="gasto-icon" style="background:#e4f0e0;color:var(--green)">🏠</div>
+          <div class="gasto-info">
+            <div class="concepto">Alquiler local julio</div>
+            <div class="meta">Alquileres · 01/07/2026 · Proveedor: Inmobiliaria Sur</div>
+          </div>
+          <div class="gasto-monto">$ 200.000</div>
+        </div>
+        <div class="gasto-item">
+          <div class="gasto-icon" style="background:#f0f7ff;color:var(--blue)">⚡</div>
+          <div class="gasto-info">
+            <div class="concepto">Servicio de luz julio</div>
+            <div class="meta">Servicios · 05/07/2026 · Proveedor: Edenor</div>
+          </div>
+          <div class="gasto-monto">$ 35.000</div>
+        </div>
+        <div class="gasto-item">
+          <div class="gasto-icon" style="background:#fef3d0;color:var(--yellow)">🧈</div>
+          <div class="gasto-info">
+            <div class="concepto">Compra de harina y manteca</div>
+            <div class="meta">Insumos · 08/07/2026 · Proveedor: Molinos Río</div>
+          </div>
+          <div class="gasto-monto">$ 85.000</div>
+        </div>
+        <div class="gasto-item">
+          <div class="gasto-icon" style="background:#fde0e0;color:var(--red)">📋</div>
+          <div class="gasto-info">
+            <div class="concepto">Monotributo julio</div>
+            <div class="meta">Impuestos · 10/07/2026</div>
+          </div>
+          <div class="gasto-monto">$ 70.000</div>
+        </div>
+        <div class="gasto-item">
+          <div class="gasto-icon" style="background:#f0f7ff;color:var(--blue)">💧</div>
+          <div class="gasto-info">
+            <div class="concepto">Servicio de agua</div>
+            <div class="meta">Servicios · 12/07/2026 · Proveedor: AySA</div>
+          </div>
+          <div class="gasto-monto">$ 8.000</div>
+        </div>
+      </div>
+
+      <!-- TAB: REGISTRAR GASTO -->
+      <div class="tab-content" id="tab-registrar">
+        <div style="max-width:600px">
+          <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:12px;padding:24px">
+            <h3 style="color:var(--accent);margin-bottom:16px;font-size:16px">Nuevo gasto</h3>
+            <div class="form-row">
+              <div class="form-group">
+                <label>Monto ($)</label>
+                <input type="number" placeholder="0" style="font-size:20px;font-weight:700;text-align:center">
+              </div>
+              <div class="form-group">
+                <label>Fecha</label>
+                <input type="date" value="2026-07-13">
+              </div>
+            </div>
+            <div class="form-group">
+              <label>Categoría</label>
+              <select>
+                <option>Seleccionar categoría...</option>
+                <option>🏠 Alquileres</option>
+                <option>⚡ Servicios (luz, gas, internet, agua)</option>
+                <option>🧈 Insumos / Mercadería</option>
+                <option>📋 Impuestos y tasas</option>
+                <option>👷 Sueldos</option>
+                <option>🧹 Mantenimiento y limpieza</option>
+                <option>📦 Embalajes y elementos</option>
+                <option>📢 Publicidad</option>
+                <option>📱 Telecomunicaciones</option>
+                <option>🚚 Transporte / Flete</option>
+                <option>🏥 Seguros</option>
+                <option>📖 Contable / Profesionales</option>
+                <option>🔧 Otros</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>Concepto</label>
+              <input type="text" placeholder="Ej: Compra de harina integral, Pago de luz...">
+            </div>
+            <div class="form-group">
+              <label>Proveedor (opcional)</label>
+              <input type="text" placeholder="Ej: Molinos Río S.A.">
+            </div>
+            <div class="form-check">
+              <input type="checkbox" id="recurrente">
+              <label for="recurrente" style="font-size:13px;font-weight:500;color:var(--text);margin:0">Gasto recurrente (se repite cada mes)</label>
+            </div>
+            <div style="display:flex;gap:8px;justify-content:flex-end">
+              <button class="btn-secondary">Cancelar</button>
+              <button class="btn-primary">Guardar gasto</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- TAB: TODOS LOS GASTOS -->
+      <div class="tab-content" id="tab-gastos">
+        <div class="export-bar">
+          <select>
+            <option>Todos los meses</option>
+            <option selected>Julio 2026</option>
+            <option>Junio 2026</option>
+            <option>Mayo 2026</option>
+          </select>
+          <select>
+            <option>Todas las categorías</option>
+            <option>Alquileres</option>
+            <option>Servicios</option>
+            <option>Insumos</option>
+            <option>Impuestos</option>
+          </select>
+          <button class="btn-secondary">📥 Exportar CSV</button>
+        </div>
+
+        <div style="display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap">
+          <div style="flex:1;min-width:140px;background:var(--bg-card);border:1px solid var(--border);border-radius:8px;padding:12px;text-align:center">
+            <div style="font-size:11px;color:var(--text-muted)">Total gastos</div>
+            <div style="font-size:20px;font-weight:700;color:var(--red)">$ 600.000</div>
+          </div>
+          <div style="flex:1;min-width:140px;background:var(--bg-card);border:1px solid var(--border);border-radius:8px;padding:12px;text-align:center">
+            <div style="font-size:11px;color:var(--text-muted)">Cantidad</div>
+            <div style="font-size:20px;font-weight:700;color:var(--accent)">18 gastos</div>
+          </div>
+          <div style="flex:1;min-width:140px;background:var(--bg-card);border:1px solid var(--border);border-radius:8px;padding:12px;text-align:center">
+            <div style="font-size:11px;color:var(--text-muted)">Promedio</div>
+            <div style="font-size:20px;font-weight:700;color:var(--accent)">$ 33.333</div>
+          </div>
+        </div>
+
+        <div class="gasto-item">
+          <div class="gasto-icon" style="background:#e4f0e0;color:var(--green)">🏠</div>
+          <div class="gasto-info">
+            <div class="concepto">Alquiler local julio</div>
+            <div class="meta">Alquileres · 01/07/2026 · admin</div>
+          </div>
+          <div class="gasto-monto">$ 200.000</div>
+          <div class="gasto-acciones"><button>✏️</button><button>🗑️</button></div>
+        </div>
+        <div class="gasto-item">
+          <div class="gasto-icon" style="background:#f0f7ff;color:var(--blue)">⚡</div>
+          <div class="gasto-info">
+            <div class="concepto">Servicio de luz julio</div>
+            <div class="meta">Servicios · 05/07/2026 · Edenor</div>
+          </div>
+          <div class="gasto-monto">$ 35.000</div>
+          <div class="gasto-acciones"><button>✏️</button><button>🗑️</button></div>
+        </div>
+        <div class="gasto-item">
+          <div class="gasto-icon" style="background:#f0f7ff;color:var(--blue)">🌐</div>
+          <div class="gasto-info">
+            <div class="concepto">Internet fibra óptica</div>
+            <div class="meta">Servicios · 05/07/2026 · Telecom</div>
+          </div>
+          <div class="gasto-monto">$ 12.000</div>
+          <div class="gasto-acciones"><button>✏️</button><button>🗑️</button></div>
+        </div>
+        <div class="gasto-item">
+          <div class="gasto-icon" style="background:#fef3d0;color:var(--yellow)">🧈</div>
+          <div class="gasto-info">
+            <div class="concepto">Compra de harina y manteca</div>
+            <div class="meta">Insumos · 08/07/2026 · Molinos Río</div>
+          </div>
+          <div class="gasto-monto">$ 85.000</div>
+          <div class="gasto-acciones"><button>✏️</button><button>🗑️</button></div>
+        </div>
+        <div class="gasto-item">
+          <div class="gasto-icon" style="background:#fef3d0;color:var(--yellow)">🥚</div>
+          <div class="gasto-info">
+            <div class="concepto">Huevos y lácteos</div>
+            <div class="meta">Insumos · 10/07/2026 · Granja El Sol</div>
+          </div>
+          <div class="gasto-monto">$ 45.000</div>
+          <div class="gasto-acciones"><button>✏️</button><button>🗑️</button></div>
+        </div>
+        <div class="gasto-item">
+          <div class="gasto-icon" style="background:#fde0e0;color:var(--red)">📋</div>
+          <div class="gasto-info">
+            <div class="concepto">Monotributo julio</div>
+            <div class="meta">Impuestos · 10/07/2026</div>
+          </div>
+          <div class="gasto-monto">$ 70.000</div>
+          <div class="gasto-acciones"><button>✏️</button><button>🗑️</button></div>
+        </div>
+        <div class="gasto-item">
+          <div class="gasto-icon" style="background:#f0f7ff;color:var(--blue)">💧</div>
+          <div class="gasto-info">
+            <div class="concepto">Servicio de agua</div>
+            <div class="meta">Servicios · 12/07/2026 · AySA</div>
+          </div>
+          <div class="gasto-monto">$ 8.000</div>
+          <div class="gasto-acciones"><button>✏️</button><button>🗑️</button></div>
+        </div>
+
+        <div class="paginacion">
+          <button disabled>&laquo;</button>
+          <button class="activo">1</button>
+          <button>2</button>
+          <button>3</button>
+          <button>&raquo;</button>
+          <span class="pag-info">Página 1 de 3</span>
+        </div>
+      </div>
+
+      <!-- TAB: CATEGORÍAS -->
+      <div class="tab-content" id="tab-categorias">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+          <div class="section-title" style="margin:0">Categorías de gasto</div>
+          <button class="btn-primary">+ Nueva categoría</button>
+        </div>
+        <div class="cat-grid">
+          <div class="cat-card">
+            <div class="cat-icon">🏠</div>
+            <div><div class="cat-name">Alquileres</div><div class="cat-count">3 gastos · $ 600.000</div></div>
+          </div>
+          <div class="cat-card">
+            <div class="cat-icon">⚡</div>
+            <div><div class="cat-name">Servicios</div><div class="cat-count">6 gastos · $ 115.000</div></div>
+          </div>
+          <div class="cat-card">
+            <div class="cat-icon">🧈</div>
+            <div><div class="cat-name">Insumos / Mercadería</div><div class="cat-count">8 gastos · $ 150.000</div></div>
+          </div>
+          <div class="cat-card">
+            <div class="cat-icon">📋</div>
+            <div><div class="cat-name">Impuestos y tasas</div><div class="cat-count">2 gastos · $ 70.000</div></div>
+          </div>
+          <div class="cat-card">
+            <div class="cat-icon">👷</div>
+            <div><div class="cat-name">Sueldos</div><div class="cat-count">2 gastos · $ 180.000</div></div>
+          </div>
+          <div class="cat-card">
+            <div class="cat-icon">🧹</div>
+            <div><div class="cat-name">Mantenimiento</div><div class="cat-count">1 gasto · $ 15.000</div></div>
+          </div>
+          <div class="cat-card">
+            <div class="cat-icon">📦</div>
+            <div><div class="cat-name">Embalajes</div><div class="cat-count">3 gastos · $ 22.000</div></div>
+          </div>
+          <div class="cat-card">
+            <div class="cat-icon">📢</div>
+            <div><div class="cat-name">Publicidad</div><div class="cat-count">0 gastos · $ 0</div></div>
+          </div>
+          <div class="cat-card">
+            <div class="cat-icon">🔧</div>
+            <div><div class="cat-name">Otros</div><div class="cat-count">1 gasto · $ 65.000</div></div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <script>
+    function cambiarTab(tab) {
+      document.querySelectorAll('.tab').forEach(t => t.classList.remove('activo'));
+      document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('activo'));
+      event.target.classList.add('activo');
+      document.getElementById('tab-' + tab).classList.add('activo');
+    }
+  </script>
+</body>
+</html>

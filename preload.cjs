@@ -40,4 +40,13 @@ contextBridge.exposeInMainWorld('api', {
   getVentasReporte: (data) => ipcRenderer.invoke('get-ventas-reporte', data),
   getMovimientosPorApertura: (data) => ipcRenderer.invoke('get-movimientos-por-apertura', data),
   getHistorialMovimientos: (data) => ipcRenderer.invoke('get-historial-movimientos', data),
+  // Contabilidad
+  getCategoriasGasto: () => ipcRenderer.invoke('get-categorias-gasto'),
+  createCategoriaGasto: (data) => ipcRenderer.invoke('create-categoria-gasto', data),
+  deleteCategoriaGasto: (id) => ipcRenderer.invoke('delete-categoria-gasto', id),
+  createGasto: (data) => ipcRenderer.invoke('create-gasto', data),
+  getGastos: (data) => ipcRenderer.invoke('get-gastos', data),
+  updateGasto: (data) => ipcRenderer.invoke('update-gasto', data),
+  deleteGasto: (id) => ipcRenderer.invoke('delete-gasto', id),
+  getResumenContabilidad: () => ipcRenderer.invoke('get-resumen-contabilidad'),
 });

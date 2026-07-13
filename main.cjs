@@ -290,6 +290,54 @@ app.whenReady().then(() => {
     }
   }
 
+  // === TABLAS DE CONTABILIDAD ===
+  db.prepare(`
+    CREATE TABLE IF NOT EXISTS categorias_gasto (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      nombre TEXT NOT NULL UNIQUE,
+      icono TEXT DEFAULT '📦'
+    )
+  `).run();
+
+  db.prepare(`
+    CREATE TABLE IF NOT EXISTS gastos (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      monto REAL NOT NULL,
+      fecha TEXT NOT NULL,
+      categoria_id INTEGER NOT NULL,
+      concepto TEXT NOT NULL,
+      proveedor TEXT DEFAULT '',
+      recurrente INTEGER DEFAULT 0,
+      notas TEXT DEFAULT '',
+      fecha_registro TEXT DEFAULT (datetime('now', 'localtime')),
+      FOREIGN KEY (categoria_id) REFERENCES categorias_gasto(id)
+    )
+  `).run();
+
+  // Seed categorías de gasto por defecto si están vacías
+  const catGastoCount = db.prepare('SELECT COUNT(*) as c FROM categorias_gasto').get().c;
+  if (catGastoCount === 0) {
+    const catsDefault = [
+      { nombre: 'Materia Prima', icono: '🌾' },
+      { nombre: 'Servicios', icono: '💡' },
+      { nombre: 'Alquiler', icono: '🏠' },
+      { nombre: 'Sueldos', icono: '👥' },
+      { nombre: 'Impuestos', icono: '📄' },
+      { nombre: 'Mantenimiento', icono: '🔧' },
+      { nombre: 'Transporte', icono: '🚛' },
+      { nombre: 'Packaging', icono: '📦' },
+      { nombre: 'Limpieza', icono: '🧹' },
+      { nombre: 'Marketing', icono: '📢' },
+      { nombre: 'Seguros', icono: '🛡️' },
+      { nombre: 'Equipamiento', icono: '⚙️' },
+      { nombre: 'Otros', icono: '📎' }
+    ];
+    const insertCat = db.prepare('INSERT INTO categorias_gasto (nombre, icono) VALUES (?, ?)');
+    for (const c of catsDefault) {
+      insertCat.run(c.nombre, c.icono);
+    }
+  }
+
   createWindow();
 
   ipcMain.handle('get-categories', () => {
@@ -1048,6 +1096,135 @@ app.whenReady().then(() => {
       stockActual,
       stockBajo,
       ventasPorDia,
+    };
+  });
+
+  // === HANDLERS DE CONTABILIDAD ===
+
+  ipcMain.handle('get-categorias-gasto', () => {
+    return db.prepare('SELECT * FROM categorias_gasto ORDER BY nombre').all();
+  });
+
+  ipcMain.handle('create-categoria-gasto', (_, { nombre, icono }) => {
+    try {
+      const result = db.prepare('INSERT INTO categorias_gasto (nombre, icono) VALUES (?, ?)').run(nombre, icono || '📦');
+      return { success: true, id: result.lastInsertRowid };
+    } catch (err) {
+      if (err.message.includes('UNIQUE')) return { success: false, error: 'Ya existe una categoría con ese nombre' };
+      return { success: false, error: err.message };
+    }
+  });
+
+  ipcMain.handle('delete-categoria-gasto', (_, id) => {
+    const enUso = db.prepare('SELECT COUNT(*) as c FROM gastos WHERE categoria_id = ?').get(id);
+    if (enUso.c > 0) return { success: false, error: 'No se puede eliminar: tiene gastos asociados' };
+    db.prepare('DELETE FROM categorias_gasto WHERE id = ?').run(id);
+    return { success: true };
+  });
+
+  ipcMain.handle('create-gasto', (_, { monto, fecha, categoria_id, concepto, proveedor, recurrente, notas }) => {
+    const result = db.prepare(
+      'INSERT INTO gastos (monto, fecha, categoria_id, concepto, proveedor, recurrente, notas) VALUES (?, ?, ?, ?, ?, ?, ?)'
+    ).run(monto, fecha, categoria_id, concepto, proveedor || '', recurrente ? 1 : 0, notas || '');
+    return { success: true, id: result.lastInsertRowid };
+  });
+
+  ipcMain.handle('get-gastos', (_, { mes, categoria_id }) => {
+    let conditions = [];
+    let params = [];
+    if (mes) {
+      conditions.push(`strftime('%Y-%m', g.fecha) = ?`);
+      params.push(mes);
+    }
+    if (categoria_id) {
+      conditions.push(`g.categoria_id = ?`);
+      params.push(categoria_id);
+    }
+    const where = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
+    return db.prepare(`
+      SELECT g.*, c.nombre as categoria_nombre, c.icono as categoria_icono
+      FROM gastos g
+      JOIN categorias_gasto c ON c.id = g.categoria_id
+      ${where}
+      ORDER BY g.fecha DESC, g.id DESC
+    `).all(...params);
+  });
+
+  ipcMain.handle('update-gasto', (_, { id, monto, fecha, categoria_id, concepto, proveedor, recurrente, notas }) => {
+    db.prepare(
+      'UPDATE gastos SET monto = ?, fecha = ?, categoria_id = ?, concepto = ?, proveedor = ?, recurrente = ?, notas = ? WHERE id = ?'
+    ).run(monto, fecha, categoria_id, concepto, proveedor || '', recurrente ? 1 : 0, notas || '', id);
+    return { success: true };
+  });
+
+  ipcMain.handle('delete-gasto', (_, id) => {
+    db.prepare('DELETE FROM gastos WHERE id = ?').run(id);
+    return { success: true };
+  });
+
+  ipcMain.handle('get-resumen-contabilidad', () => {
+    const hoy = new Date();
+    const mesActual = `${hoy.getFullYear()}-${String(hoy.getMonth() + 1).padStart(2, '0')}`;
+
+    // Ventas del mes
+    const ventasMes = db.prepare(`
+      SELECT COALESCE(SUM(total_con_descuento), 0) as total
+      FROM ventas
+      WHERE strftime('%Y-%m', fecha_hora) = ?
+    `).get(mesActual);
+
+    // Gastos del mes
+    const gastosMes = db.prepare(`
+      SELECT COALESCE(SUM(monto), 0) as total
+      FROM gastos
+      WHERE strftime('%Y-%m', fecha) = ?
+    `).get(mesActual);
+
+    // Gastos por categoría este mes
+    const gastosPorCategoria = db.prepare(`
+      SELECT c.nombre, c.icono, COALESCE(SUM(g.monto), 0) as total, COUNT(g.id) as cantidad
+      FROM categorias_gasto c
+      LEFT JOIN gastos g ON g.categoria_id = c.id AND strftime('%Y-%m', g.fecha) = ?
+      GROUP BY c.id
+      HAVING total > 0
+      ORDER BY total DESC
+    `).all(mesActual);
+
+    // Últimos 5 gastos
+    const ultimosGastos = db.prepare(`
+      SELECT g.*, c.nombre as categoria_nombre, c.icono as categoria_icono
+      FROM gastos g
+      JOIN categorias_gasto c ON c.id = g.categoria_id
+      ORDER BY g.fecha DESC, g.id DESC
+      LIMIT 5
+    `).all();
+
+    // Totales generales (todos los tiempos)
+    const totalGeneralVentas = db.prepare('SELECT COALESCE(SUM(total_con_descuento), 0) as total FROM ventas').get();
+    const totalGeneralGastos = db.prepare('SELECT COALESCE(SUM(monto), 0) as total FROM gastos').get();
+
+    // Meses con datos (para el gráfico, últimos 6 meses)
+    const mesesGrafico = [];
+    for (let i = 5; i >= 0; i--) {
+      const f = new Date(hoy.getFullYear(), hoy.getMonth() - i, 1);
+      const m = `${f.getFullYear()}-${String(f.getMonth() + 1).padStart(2, '0')}`;
+      const label = f.toLocaleDateString('es-AR', { month: 'short', year: '2-digit' });
+      const v = db.prepare('SELECT COALESCE(SUM(total_con_descuento), 0) as total FROM ventas WHERE strftime(\'%Y-%m\', fecha_hora) = ?').get(m);
+      const g = db.prepare('SELECT COALESCE(SUM(monto), 0) as total FROM gastos WHERE strftime(\'%Y-%m\', fecha) = ?').get(m);
+      mesesGrafico.push({ label, ventas: v.total, gastos: g.total });
+    }
+
+    const ingresos = ventasMes.total;
+    const egresos = gastosMes.total;
+    const balance = ingresos - egresos;
+    const margen = ingresos > 0 ? ((ingresos - egresos) / ingresos * 100) : 0;
+
+    return {
+      ingresos, egresos, balance, margen,
+      gastosPorCategoria, ultimosGastos,
+      totalGeneralVentas: totalGeneralVentas.total,
+      totalGeneralGastos: totalGeneralGastos.total,
+      mesesGrafico
     };
   });
 

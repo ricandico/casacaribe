@@ -574,6 +574,93 @@
       .panel-carrito { width: 100% !important; border-left: none !important; border-top: 1px solid var(--border); max-height: 50vh; }
       .productos-grid { grid-template-columns: repeat(auto-fill, minmax(110px, 1fr)) !important; }
     }
+
+    /* === CONTABILIDAD === */
+    .contab-tab {
+      background: none;
+      border: none;
+      padding: 10px 18px;
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--text-muted);
+      cursor: pointer;
+      border-bottom: 2px solid transparent;
+      transition: all 0.15s;
+    }
+    .contab-tab:hover { color: var(--accent); }
+    .contab-tab.activo { color: var(--accent); border-bottom-color: var(--accent); font-weight: 600; }
+
+    .contab-card {
+      background: var(--bg-card);
+      border-radius: 10px;
+      padding: 16px;
+      border: 1px solid var(--border);
+      box-shadow: var(--card-shadow);
+    }
+    .contab-card .label { font-size: 12px; color: var(--text-muted); font-weight: 500; margin-bottom: 4px; }
+    .contab-card .value { font-size: 22px; font-weight: 700; }
+    .contab-card.positive .value { color: var(--green); }
+    .contab-card.negative .value { color: var(--red); }
+
+    .contab-bar-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 8px;
+      font-size: 13px;
+    }
+    .contab-bar-row .bar-label { min-width: 100px; font-weight: 500; }
+    .contab-bar-row .bar-track { flex: 1; height: 10px; background: #e8ddd2; border-radius: 5px; overflow: hidden; }
+    .contab-bar-row .bar-fill { height: 100%; background: var(--accent); border-radius: 5px; transition: width 0.3s; }
+    .contab-bar-row .bar-amount { min-width: 80px; text-align: right; font-weight: 600; font-size: 12px; }
+
+    .contab-gasto-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 10px 12px;
+      border-bottom: 1px solid var(--border);
+      font-size: 13px;
+    }
+    .contab-gasto-item:last-child { border-bottom: none; }
+    .contab-gasto-item .g-icon { font-size: 20px; }
+    .contab-gasto-item .g-info { flex: 1; }
+    .contab-gasto-item .g-concepto { font-weight: 500; }
+    .contab-gasto-item .g-meta { font-size: 11px; color: var(--text-muted); }
+    .contab-gasto-item .g-monto { font-weight: 700; color: var(--red); font-size: 14px; }
+    .contab-gasto-item .g-acciones { display: flex; gap: 4px; }
+    .contab-gasto-item .g-acciones button {
+      background: none;
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      padding: 4px 8px;
+      cursor: pointer;
+      font-size: 12px;
+    }
+    .contab-gasto-item .g-acciones button:hover { background: var(--bg); }
+
+    .contab-cat-card {
+      background: var(--bg-card);
+      border-radius: 10px;
+      padding: 16px;
+      border: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .contab-cat-card .cat-icon { font-size: 28px; }
+    .contab-cat-card .cat-info { flex: 1; }
+    .contab-cat-card .cat-name { font-weight: 600; font-size: 14px; }
+    .contab-cat-card .cat-meta { font-size: 12px; color: var(--text-muted); }
+    .contab-cat-card .cat-delete {
+      background: none;
+      border: 1px solid #e0d6ca;
+      border-radius: 6px;
+      padding: 4px 10px;
+      cursor: pointer;
+      font-size: 12px;
+      color: var(--red);
+    }
   </style>
 </head>
 <body>
@@ -606,6 +693,7 @@
         <button class="sidebar-btn admin-only" data-action="usuarios"><span class="icon">👥</span> Gestionar Usuarios</button>
         <button class="sidebar-btn admin-only" data-action="historial-cierres"><span class="icon">📁</span> Historial de Cierres</button>
         <button class="sidebar-btn admin-only" data-action="historial-movimientos"><span class="icon">💸</span> Historial de Movimientos</button>
+        <button class="sidebar-btn admin-only" data-action="contabilidad"><span class="icon">📊</span> Contabilidad</button>
         <div class="sidebar-divider"></div>
         <button class="sidebar-btn" data-action="logout"><span class="icon">🚪</span> Cerrar Sesión</button>
       </div>
@@ -971,6 +1059,113 @@
     </div>
   </div>
 
+  <!-- MODAL CONTABILIDAD -->
+  <div class="modal-overlay" id="modalContabilidad">
+    <div class="modal" style="width:900px;max-width:95vw;max-height:90vh;overflow-y:auto">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+        <h2 style="margin:0">📊 Contabilidad</h2>
+        <button id="btnCerrarContabilidad" style="background:#e8ddd2;color:#5c3a1e;border:none;padding:8px 16px;border-radius:8px;cursor:pointer;font-size:13px;font-weight:500">Cerrar</button>
+      </div>
+      <div style="display:flex;gap:4px;margin-bottom:16px;border-bottom:2px solid #e0d6ca">
+        <button class="contab-tab activo" data-tab="resumen">📋 Resumen</button>
+        <button class="contab-tab" data-tab="registrar">➕ Registrar Gasto</button>
+        <button class="contab-tab" data-tab="todos">📁 Todos los Gastos</button>
+        <button class="contab-tab" data-tab="categorias">🏷️ Categorías</button>
+      </div>
+
+      <!-- TAB RESUMEN -->
+      <div class="contab-panel" id="contabResumen">
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px;margin-bottom:20px" id="contabCards"></div>
+        <div style="background:#faf7f4;border-radius:10px;padding:16px;margin-bottom:16px;border:1px solid #e0d6ca">
+          <h3 style="font-size:14px;color:#5c3a1e;margin-bottom:12px">Ingresos vs Gastos (6 meses)</h3>
+          <canvas id="contabChart" height="180"></canvas>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+          <div style="background:#faf7f4;border-radius:10px;padding:16px;border:1px solid #e0d6ca">
+            <h3 style="font-size:14px;color:#5c3a1e;margin-bottom:10px">Gastos por Categoría</h3>
+            <div id="contabCatBars"></div>
+          </div>
+          <div style="background:#faf7f4;border-radius:10px;padding:16px;border:1px solid #e0d6ca">
+            <h3 style="font-size:14px;color:#5c3a1e;margin-bottom:10px">Últimos Gastos</h3>
+            <div id="contabUltimos"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- TAB REGISTRAR GASTO -->
+      <div class="contab-panel" id="contabRegistrar" style="display:none">
+        <div style="max-width:500px">
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px">
+            <div>
+              <label style="font-size:12px;font-weight:600;color:#5c3a1e;display:block;margin-bottom:4px">Monto ($)</label>
+              <input id="contabMonto" type="number" min="0" step="any" placeholder="0" style="width:100%;padding:10px;border:2px solid #d4c4b3;border-radius:8px;font-size:16px;font-weight:700">
+            </div>
+            <div>
+              <label style="font-size:12px;font-weight:600;color:#5c3a1e;display:block;margin-bottom:4px">Fecha</label>
+              <input id="contabFecha" type="date" style="width:100%;padding:10px;border:2px solid #d4c4b3;border-radius:8px;font-size:14px">
+            </div>
+          </div>
+          <div style="margin-bottom:12px">
+            <label style="font-size:12px;font-weight:600;color:#5c3a1e;display:block;margin-bottom:4px">Categoría</label>
+            <select id="contabCategoria" style="width:100%;padding:10px;border:2px solid #d4c4b3;border-radius:8px;font-size:14px"></select>
+          </div>
+          <div style="margin-bottom:12px">
+            <label style="font-size:12px;font-weight:600;color:#5c3a1e;display:block;margin-bottom:4px">Concepto</label>
+            <input id="contabConcepto" type="text" placeholder="Descripción del gasto" style="width:100%;padding:10px;border:2px solid #d4c4b3;border-radius:8px;font-size:14px">
+          </div>
+          <div style="margin-bottom:12px">
+            <label style="font-size:12px;font-weight:600;color:#5c3a1e;display:block;margin-bottom:4px">Proveedor (opcional)</label>
+            <input id="contabProveedor" type="text" placeholder="Nombre del proveedor" style="width:100%;padding:10px;border:2px solid #d4c4b3;border-radius:8px;font-size:14px">
+          </div>
+          <div style="margin-bottom:16px">
+            <label style="font-size:12px;font-weight:600;color:#5c3a1e;display:flex;align-items:center;gap:6px;cursor:pointer">
+              <input type="checkbox" id="contabRecurrente"> Gasto recurrente
+            </label>
+          </div>
+          <button id="btnGuardarGasto" style="background:#2d6a1e;color:#fff;border:none;padding:12px 28px;border-radius:8px;font-size:15px;font-weight:600;cursor:pointer;width:100%">Guardar Gasto</button>
+        </div>
+      </div>
+
+      <!-- TODOS LOS GASTOS -->
+      <div class="contab-panel" id="contabTodos" style="display:none">
+        <div style="display:flex;gap:10px;margin-bottom:14px;flex-wrap:wrap;align-items:flex-end">
+          <div style="flex:1;min-width:140px">
+            <label style="font-size:12px;font-weight:600;color:#5c3a1e;display:block;margin-bottom:2px">Mes</label>
+            <input id="contabFiltroMes" type="month" style="width:100%;padding:8px;border:1px solid #d4c4b3;border-radius:6px;font-size:13px;background:#fff;height:36px">
+          </div>
+          <div style="flex:1;min-width:160px">
+            <label style="font-size:12px;font-weight:600;color:#5c3a1e;display:block;margin-bottom:2px">Categoría</label>
+            <select id="contabFiltroCategoria" style="width:100%;padding:8px;border:1px solid #d4c4b3;border-radius:6px;font-size:13px;background:#fff;height:36px">
+              <option value="">Todas</option>
+            </select>
+          </div>
+          <button id="contabFiltrarGastos" style="background:#5c3a1e;color:#fff;border:none;padding:8px 18px;border-radius:6px;cursor:pointer;font-size:13px;font-weight:600;height:36px">Filtrar</button>
+          <button id="contabLimpiarFiltros" style="background:#e8ddd2;color:#5c3a1e;border:none;padding:8px 14px;border-radius:6px;cursor:pointer;font-size:13px;font-weight:500;height:36px">Limpiar</button>
+          <button id="contabExportarCSV" style="background:#1a6a9e;color:#fff;border:none;padding:8px 14px;border-radius:6px;cursor:pointer;font-size:13px;font-weight:500;height:36px">📥 CSV</button>
+        </div>
+        <div id="contabResumenGastos" style="display:flex;gap:8px;margin-bottom:12px"></div>
+        <div id="contabListaGastos"></div>
+        <div id="contabPaginacionGastos"></div>
+      </div>
+
+      <!-- CATEGORÍAS -->
+      <div class="contab-panel" id="contabCategorias" style="display:none">
+        <div style="display:flex;gap:10px;margin-bottom:16px;align-items:flex-end">
+          <div style="flex:1;min-width:200px">
+            <label style="font-size:12px;font-weight:600;color:#5c3a1e;display:block;margin-bottom:4px">Nueva categoría</label>
+            <input id="contabNuevaCat" type="text" placeholder="Nombre" style="width:100%;padding:8px;border:1px solid #d4c4b3;border-radius:6px;font-size:13px;height:36px">
+          </div>
+          <div style="min-width:80px">
+            <label style="font-size:12px;font-weight:600;color:#5c3a1e;display:block;margin-bottom:4px">Ícono</label>
+            <input id="contabNuevaCatIcono" type="text" value="📦" maxlength="4" style="width:100%;padding:8px;border:1px solid #d4c4b3;border-radius:6px;font-size:16px;text-align:center;height:36px">
+          </div>
+          <button id="contabCrearCategoria" style="background:#2d6a1e;color:#fff;border:none;padding:8px 18px;border-radius:6px;cursor:pointer;font-size:13px;font-weight:600;height:36px">Crear</button>
+        </div>
+        <div id="contabGridCats" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:12px"></div>
+      </div>
+    </div>
+  </div>
+
   <div class="toast" id="toast"></div>
 
     </div>
@@ -993,6 +1188,7 @@
       'usuarios': () => { abrirUsuarios(); },
       'historial-cierres': () => { abrirHistorialCierres(); },
       'historial-movimientos': () => { abrirHistorialMovimientos(); },
+      'contabilidad': () => { abrirContabilidad(); },
       'logout': () => {
         usuarioActual = null;
         document.getElementById('appContainer').classList.remove('mostrar');
@@ -3370,6 +3566,313 @@
       document.getElementById('movTipo').value = 'todos';
       await cargarHistorialMovimientos();
     });
+
+    // === CONTABILIDAD ===
+    let _contabGastosPagina = 1;
+    let _contabCategoriasCache = [];
+
+    function formatearContabilidad(n) {
+      return '$ ' + Math.round(n).toLocaleString('es-AR');
+    }
+
+    document.querySelectorAll('.contab-tab').forEach(tab => {
+      tab.addEventListener('click', () => {
+        document.querySelectorAll('.contab-tab').forEach(t => t.classList.remove('activo'));
+        document.querySelectorAll('.contab-panel').forEach(p => p.style.display = 'none');
+        tab.classList.add('activo');
+        const panelId = 'contab' + tab.dataset.tab.charAt(0).toUpperCase() + tab.dataset.tab.slice(1);
+        document.getElementById(panelId).style.display = '';
+        if (tab.dataset.tab === 'resumen') cargarResumenContabilidad();
+        if (tab.dataset.tab === 'todos') cargarGastosContabilidad();
+        if (tab.dataset.tab === 'categorias') cargarCategoriasContabilidad();
+      });
+    });
+
+    document.getElementById('btnCerrarContabilidad').addEventListener('click', () => {
+      document.getElementById('modalContabilidad').classList.remove('mostrar');
+    });
+
+    async function abrirContabilidad() {
+      document.getElementById('modalContabilidad').classList.add('mostrar');
+      _contabCategoriasCache = await api.getCategoriasGasto();
+      cargarSelectCategorias();
+      cargarResumenContabilidad();
+    }
+
+    async function cargarResumenContabilidad() {
+      const res = await api.getResumenContabilidad();
+      const cards = document.getElementById('contabCards');
+      const margenClass = res.margen >= 0 ? 'positive' : 'negative';
+      const balanceClass = res.balance >= 0 ? 'positive' : 'negative';
+      cards.innerHTML = `
+        <div class="contab-card positive"><div class="label">Ingresos (mes)</div><div class="value">${formatearContabilidad(res.ingresos)}</div></div>
+        <div class="contab-card negative"><div class="label">Gastos (mes)</div><div class="value">${formatearContabilidad(res.egresos)}</div></div>
+        <div class="contab-card ${balanceClass}"><div class="label">Balance Neto</div><div class="value">${formatearContabilidad(res.balance)}</div></div>
+        <div class="contab-card ${margenClass}"><div class="label">Margen de Ganancia</div><div class="value">${res.margen.toFixed(1)}%</div></div>
+      `;
+
+      // Gráfico de barras
+      const canvas = document.getElementById('contabChart');
+      const ctx = canvas.getContext('2d');
+      canvas.width = canvas.offsetWidth;
+      canvas.height = 180;
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+      const data = res.mesesGrafico;
+      const maxVal = Math.max(1, ...data.map(d => Math.max(d.ventas, d.gastos)));
+      const barWidth = Math.floor(canvas.width / (data.length * 2.5));
+      const gap = Math.floor(barWidth * 0.4);
+      const startX = (canvas.width - (barWidth * 2 + gap) * data.length) / 2;
+
+      data.forEach((d, i) => {
+        const x = startX + i * (barWidth * 2 + gap);
+        const hVentas = (d.ventas / maxVal) * 140;
+        const hGastos = (d.gastos / maxVal) * 140;
+
+        ctx.fillStyle = '#2d6a1e';
+        ctx.fillRect(x, 160 - hVentas, barWidth, hVentas);
+        ctx.fillStyle = '#b33a3a';
+        ctx.fillRect(x + barWidth + 2, 160 - hGastos, barWidth, hGastos);
+
+        ctx.fillStyle = '#8a7a6a';
+        ctx.font = '10px sans-serif';
+        ctx.textAlign = 'center';
+        ctx.fillText(d.label, x + barWidth, 175);
+      });
+
+      // Leyenda
+      ctx.fillStyle = '#2d6a1e';
+      ctx.fillRect(canvas.width - 160, 5, 10, 10);
+      ctx.fillStyle = '#5c3a1e';
+      ctx.font = '11px sans-serif';
+      ctx.textAlign = 'left';
+      ctx.fillText('Ingresos', canvas.width - 146, 14);
+      ctx.fillStyle = '#b33a3a';
+      ctx.fillRect(canvas.width - 80, 5, 10, 10);
+      ctx.fillStyle = '#5c3a1e';
+      ctx.fillText('Gastos', canvas.width - 66, 14);
+
+      // Barras de categorías
+      const catBars = document.getElementById('contabCatBars');
+      if (res.gastosPorCategoria.length === 0) {
+        catBars.innerHTML = '<div style="color:#8a7a6a;font-size:13px;text-align:center;padding:16px">Sin gastos este mes</div>';
+      } else {
+        const maxCat = Math.max(...res.gastosPorCategoria.map(c => c.total));
+        catBars.innerHTML = res.gastosPorCategoria.map(c => `
+          <div class="contab-bar-row">
+            <span class="bar-label">${c.icono} ${c.nombre}</span>
+            <div class="bar-track"><div class="bar-fill" style="width:${(c.total / maxCat * 100)}%"></div></div>
+            <span class="bar-amount">${formatearContabilidad(c.total)}</span>
+          </div>
+        `).join('');
+      }
+
+      // Últimos gastos
+      const ultimos = document.getElementById('contabUltimos');
+      if (res.ultimosGastos.length === 0) {
+        ultimos.innerHTML = '<div style="color:#8a7a6a;font-size:13px;text-align:center;padding:16px">Sin gastos registrados</div>';
+      } else {
+        ultimos.innerHTML = res.ultimosGastos.map(g => `
+          <div style="display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid #e0d6ca;font-size:12px">
+            <span>${g.categoria_icono}</span>
+            <span style="flex:1;font-weight:500">${g.concepto}</span>
+            <span style="color:#b33a3a;font-weight:600">${formatearContabilidad(g.monto)}</span>
+          </div>
+        `).join('');
+      }
+    }
+
+    function cargarSelectCategorias() {
+      const sel = document.getElementById('contabCategoria');
+      sel.innerHTML = _contabCategoriasCache.map(c => `<option value="${c.id}">${c.icono} ${c.nombre}</option>`).join('');
+      const filtroSel = document.getElementById('contabFiltroCategoria');
+      filtroSel.innerHTML = '<option value="">Todas</option>' + _contabCategoriasCache.map(c => `<option value="${c.id}">${c.icono} ${c.nombre}</option>`).join('');
+    }
+
+    document.getElementById('btnGuardarGasto').addEventListener('click', async () => {
+      const monto = parseFloat(document.getElementById('contabMonto').value);
+      const fecha = document.getElementById('contabFecha').value;
+      const categoria_id = parseInt(document.getElementById('contabCategoria').value);
+      const concepto = document.getElementById('contabConcepto').value.trim();
+      const proveedor = document.getElementById('contabProveedor').value.trim();
+      const recurrente = document.getElementById('contabRecurrente').checked;
+
+      if (!monto || monto <= 0) return mostrarNotificacion('Ingresá un monto válido', 'error');
+      if (!fecha) return mostrarNotificacion('Seleccioná una fecha', 'error');
+      if (!concepto) return mostrarNotificacion('Ingresá un concepto', 'error');
+
+      await api.createGasto({ monto, fecha, categoria_id, concepto, proveedor, recurrente });
+      mostrarNotificacion('Gasto registrado correctamente', 'exito');
+      sonidoExito();
+      document.getElementById('contabMonto').value = '';
+      document.getElementById('contabConcepto').value = '';
+      document.getElementById('contabProveedor').value = '';
+      document.getElementById('contabRecurrente').checked = false;
+      cargarResumenContabilidad();
+    });
+
+    async function cargarGastosContabilidad() {
+      const mes = document.getElementById('contabFiltroMes').value || undefined;
+      const categoria_id = document.getElementById('contabFiltroCategoria').value || undefined;
+      const gastos = await api.getGastos({ mes, categoria_id });
+      const container = document.getElementById('contabListaGastos');
+      const resumenContainer = document.getElementById('contabResumenGastos');
+
+      const total = gastos.reduce((s, g) => s + g.monto, 0);
+      resumenContainer.innerHTML = `
+        <div style="background:#faf7f4;border-radius:8px;padding:8px 14px;border:1px solid #e0d6ca;font-size:13px">
+          <span style="color:#8a7a6a">Total:</span> <strong style="color:#b33a3a">${formatearContabilidad(total)}</strong>
+        </div>
+        <div style="background:#faf7f4;border-radius:8px;padding:8px 14px;border:1px solid #e0d6ca;font-size:13px">
+          <span style="color:#8a7a6a">Cantidad:</span> <strong>${gastos.length}</strong>
+        </div>
+        <div style="background:#faf7f4;border-radius:8px;padding:8px 14px;border:1px solid #e0d6ca;font-size:13px">
+          <span style="color:#8a7a6a">Promedio:</span> <strong>${formatearContabilidad(gastos.length > 0 ? total / gastos.length : 0)}</strong>
+        </div>
+      `;
+
+      if (gastos.length === 0) {
+        container.innerHTML = '<div style="text-align:center;color:#8a7a6a;padding:30px">No hay gastos para estos filtros</div>';
+        document.getElementById('contabPaginacionGastos').innerHTML = '';
+        return;
+      }
+
+      const { items, pagina, totalPaginas } = paginar(gastos, _contabGastosPagina, 10);
+      container.innerHTML = items.map(g => `
+        <div class="contab-gasto-item">
+          <span class="g-icon">${g.categoria_icono}</span>
+          <div class="g-info">
+            <div class="g-concepto">${g.concepto}${g.recurrente ? ' 🔄' : ''}</div>
+            <div class="g-meta">${g.categoria_nombre} · ${g.fecha}${g.proveedor ? ' · ' + g.proveedor : ''}</div>
+          </div>
+          <span class="g-monto">-${formatearContabilidad(g.monto)}</span>
+          <div class="g-acciones">
+            <button onclick="contabEditarGasto(${g.id})" title="Editar">✏️</button>
+            <button onclick="contabEliminarGasto(${g.id})" title="Eliminar">🗑️</button>
+          </div>
+        </div>
+      `).join('');
+
+      renderPaginacion('contabPaginacionGastos', totalPaginas, pagina, (pg) => {
+        _contabGastosPagina = pg;
+        cargarGastosContabilidad();
+      });
+    }
+
+    window.contabEditarGasto = async function(id) {
+      const gastos = await api.getGastos({});
+      const g = gastos.find(x => x.id === id);
+      if (!g) return;
+      const nuevoMonto = prompt('Monto ($)', g.monto);
+      if (nuevoMonto === null) return;
+      const nuevoConcepto = prompt('Concepto', g.concepto);
+      if (nuevoConcepto === null) return;
+      await api.updateGasto({
+        id: g.id,
+        monto: parseFloat(nuevoMonto) || g.monto,
+        fecha: g.fecha,
+        categoria_id: g.categoria_id,
+        concepto: nuevoConcepto || g.concepto,
+        proveedor: g.proveedor,
+        recurrente: g.recurrente,
+        notas: g.notas
+      });
+      mostrarNotificacion('Gasto actualizado', 'exito');
+      cargarGastosContabilidad();
+    };
+
+    window.contabEliminarGasto = async function(id) {
+      if (!confirm('¿Eliminar este gasto?')) return;
+      await api.deleteGasto(id);
+      mostrarNotificacion('Gasto eliminado', 'exito');
+      cargarGastosContabilidad();
+    };
+
+    document.getElementById('contabFiltrarGastos').addEventListener('click', () => {
+      _contabGastosPagina = 1;
+      cargarGastosContabilidad();
+    });
+
+    document.getElementById('contabLimpiarFiltros').addEventListener('click', () => {
+      document.getElementById('contabFiltroMes').value = '';
+      document.getElementById('contabFiltroCategoria').value = '';
+      _contabGastosPagina = 1;
+      cargarGastosContabilidad();
+    });
+
+    document.getElementById('contabExportarCSV').addEventListener('click', async () => {
+      const mes = document.getElementById('contabFiltroMes').value || undefined;
+      const categoria_id = document.getElementById('contabFiltroCategoria').value || undefined;
+      const gastos = await api.getGastos({ mes, categoria_id });
+      if (gastos.length === 0) return mostrarNotificacion('No hay datos para exportar', 'error');
+
+      let csv = 'Fecha,Categoría,Concepto,Proveedor,Monto,Recurrente\n';
+      for (const g of gastos) {
+        csv += `${g.fecha},"${g.categoria_nombre}","${g.concepto}","${g.proveedor}",${g.monto},${g.recurrente ? 'Sí' : 'No'}\n`;
+      }
+      const blob = new Blob([csv], { type: 'text/csv' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `gastos_${mes || 'todos'}.csv`;
+      a.click();
+      URL.revokeObjectURL(url);
+      mostrarNotificacion('CSV exportado', 'exito');
+    });
+
+    async function cargarCategoriasContabilidad() {
+      _contabCategoriasCache = await api.getCategoriasGasto();
+      const gastos = await api.getGastos({});
+      const container = document.getElementById('contabGridCats');
+
+      const statsMap = {};
+      for (const g of gastos) {
+        if (!statsMap[g.categoria_id]) statsMap[g.categoria_id] = { cantidad: 0, total: 0 };
+        statsMap[g.categoria_id].cantidad++;
+        statsMap[g.categoria_id].total += g.monto;
+      }
+
+      container.innerHTML = _contabCategoriasCache.map(c => {
+        const s = statsMap[c.id] || { cantidad: 0, total: 0 };
+        return `
+          <div class="contab-cat-card">
+            <span class="cat-icon">${c.icono}</span>
+            <div class="cat-info">
+              <div class="cat-name">${c.nombre}</div>
+              <div class="cat-meta">${s.cantidad} gasto${s.cantidad !== 1 ? 's' : ''} · ${formatearContabilidad(s.total)}</div>
+            </div>
+            <button class="cat-delete" onclick="contabEliminarCategoria(${c.id}, '${c.nombre}')">✕</button>
+          </div>
+        `;
+      }).join('');
+    }
+
+    document.getElementById('contabCrearCategoria').addEventListener('click', async () => {
+      const nombre = document.getElementById('contabNuevaCat').value.trim();
+      const icono = document.getElementById('contabNuevaCatIcono').value.trim() || '📦';
+      if (!nombre) return mostrarNotificacion('Ingresá un nombre', 'error');
+      const res = await api.createCategoriaGasto({ nombre, icono });
+      if (!res.success) return mostrarNotificacion(res.error, 'error');
+      mostrarNotificacion('Categoría creada', 'exito');
+      document.getElementById('contabNuevaCat').value = '';
+      document.getElementById('contabNuevaCatIcono').value = '📦';
+      _contabCategoriasCache = await api.getCategoriasGasto();
+      cargarCategoriasContabilidad();
+      cargarSelectCategorias();
+    });
+
+    window.contabEliminarCategoria = async function(id, nombre) {
+      if (!confirm(`¿Eliminar la categoría "${nombre}"?\nSolo se puede eliminar si no tiene gastos asociados.`)) return;
+      const res = await api.deleteCategoriaGasto(id);
+      if (!res.success) return mostrarNotificacion(res.error, 'error');
+      mostrarNotificacion('Categoría eliminada', 'exito');
+      _contabCategoriasCache = await api.getCategoriasGasto();
+      cargarCategoriasContabilidad();
+      cargarSelectCategorias();
+    };
+
+    // Set date defaults
+    document.getElementById('contabFecha').value = new Date().toISOString().slice(0, 10);
   </script>
 </body>
 </html>
