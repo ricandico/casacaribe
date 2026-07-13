@@ -7,31 +7,164 @@
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
 
+    :root {
+      --bg: #f5f0eb;
+      --bg-card: #fff;
+      --bg-header: #5c3a1e;
+      --bg-sidebar: #4a2e16;
+      --text: #2d2a24;
+      --text-muted: #8a7a6a;
+      --border: #e0d6ca;
+      --accent: #5c3a1e;
+      --accent-hover: #7a4f2e;
+      --green: #2d6a1e;
+      --red: #b33a3a;
+      --yellow: #8a6a00;
+      --blue: #1a6a9e;
+      --card-shadow: 0 1px 3px rgba(0,0,0,0.08);
+      --card-hover-shadow: 0 3px 8px rgba(0,0,0,0.12);
+    }
+
+    .dark {
+      --bg: #1a1714;
+      --bg-card: #2a2520;
+      --bg-header: #3a2510;
+      --bg-sidebar: #2a1c0e;
+      --text: #e8ddd2;
+      --text-muted: #a09080;
+      --border: #3a3228;
+      --accent: #c08040;
+      --accent-hover: #d09050;
+      --green: #4da83a;
+      --red: #e05555;
+      --yellow: #d0a020;
+      --blue: #4a9ad0;
+      --card-shadow: 0 1px 3px rgba(0,0,0,0.3);
+      --card-hover-shadow: 0 3px 8px rgba(0,0,0,0.4);
+    }
+
     body {
       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-      background: #f5f0eb;
-      color: #2d2a24;
+      background: var(--bg);
+      color: var(--text);
       height: 100vh;
       display: flex;
       flex-direction: column;
     }
 
     header {
-      background: #5c3a1e;
+      background: var(--bg-header);
       color: #f5f0eb;
-      padding: 16px 24px;
+      padding: 12px 20px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+      z-index: 50;
+    }
+
+    header h1 { font-size: 20px; font-weight: 600; letter-spacing: 0.5px; white-space: nowrap; }
+
+    .hamburger {
+      background: rgba(255,255,255,0.15);
+      border: none;
+      color: #fff;
+      width: 40px;
+      height: 40px;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 20px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: background 0.15s;
+    }
+    .hamburger:hover { background: rgba(255,255,255,0.25); }
+
+    .sidebar-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.4);
+      z-index: 100;
+    }
+    .sidebar-overlay.abierto { display: block; }
+
+    .sidebar {
+      position: fixed;
+      top: 0;
+      left: -280px;
+      width: 280px;
+      height: 100vh;
+      background: var(--bg-sidebar);
+      z-index: 101;
+      display: flex;
+      flex-direction: column;
+      transition: left 0.25s ease;
+      overflow-y: auto;
+    }
+    .sidebar.abierto { left: 0; }
+
+    .sidebar-header {
+      padding: 16px 20px;
+      border-bottom: 1px solid rgba(255,255,255,0.1);
       display: flex;
       justify-content: space-between;
       align-items: center;
     }
+    .sidebar-header h2 { font-size: 16px; color: #f5f0eb; font-weight: 600; }
+    .sidebar-close {
+      background: none;
+      border: none;
+      color: #f5f0eb;
+      font-size: 22px;
+      cursor: pointer;
+      padding: 4px;
+      opacity: 0.7;
+    }
+    .sidebar-close:hover { opacity: 1; }
 
-    header h1 { font-size: 22px; font-weight: 600; letter-spacing: 0.5px; }
+    .sidebar-nav { flex: 1; padding: 12px 0; }
+
+    .sidebar-btn {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      width: 100%;
+      padding: 12px 20px;
+      background: none;
+      border: none;
+      color: #f5f0eb;
+      font-size: 14px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: background 0.12s;
+      text-align: left;
+    }
+    .sidebar-btn:hover { background: rgba(255,255,255,0.08); }
+    .sidebar-btn .icon { font-size: 18px; width: 24px; text-align: center; }
+    .sidebar-btn.admin-only { display: none; }
+    .sidebar-btn.admin-visible { display: flex; }
+
+    .sidebar-divider {
+      height: 1px;
+      background: rgba(255,255,255,0.08);
+      margin: 8px 20px;
+    }
+
+    .header-actions {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
 
     .total-venta-header {
       font-size: 18px;
       background: rgba(255,255,255,0.15);
       padding: 8px 16px;
       border-radius: 8px;
+      font-weight: 700;
+      white-space: nowrap;
     }
 
     .layout { display: flex; flex: 1; overflow: hidden; }
@@ -72,19 +205,19 @@
     }
 
     .categorias button {
-      background: #e8ddd2;
-      border: none;
+      background: var(--bg-card);
+      border: 1px solid var(--border);
       padding: 8px 18px;
       border-radius: 20px;
       font-size: 14px;
       cursor: pointer;
-      color: #5c3a1e;
+      color: var(--accent);
       font-weight: 500;
       transition: all 0.15s;
     }
 
-    .categorias button:hover { background: #d4c4b3; }
-    .categorias button.activo { background: #5c3a1e; color: #fff; }
+    .categorias button:hover { background: var(--border); }
+    .categorias button.activo { background: var(--accent); color: #fff; border-color: var(--accent); }
 
     .productos-grid {
       display: grid;
@@ -95,24 +228,49 @@
     }
 
     .producto-card {
-      background: #fff;
+      background: var(--bg-card);
       border-radius: 10px;
       padding: 14px;
-      box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+      box-shadow: var(--card-shadow);
       display: flex;
       flex-direction: column;
       cursor: pointer;
-      transition: transform 0.1s, box-shadow 0.1s;
+      transition: transform 0.15s, box-shadow 0.15s;
+      position: relative;
+      overflow: hidden;
     }
 
     .producto-card:hover {
-      transform: translateY(-2px);
-      box-shadow: 0 3px 8px rgba(0,0,0,0.12);
+      transform: translateY(-3px);
+      box-shadow: var(--card-hover-shadow);
     }
 
-    .producto-card .nombre { font-weight: 600; font-size: 15px; color: #2d2a24; }
-    .producto-card .variante { font-size: 12px; color: #8a7a6a; margin-top: 2px; }
-    .producto-card .precio { font-size: 18px; font-weight: 700; color: #5c3a1e; margin-top: 8px; }
+    .producto-card.agotado {
+      opacity: 0.55;
+      cursor: not-allowed;
+    }
+    .producto-card.agotado::after {
+      content: 'SIN STOCK';
+      position: absolute;
+      top: 10px;
+      right: -30px;
+      background: var(--red);
+      color: #fff;
+      font-size: 10px;
+      font-weight: 700;
+      padding: 3px 30px;
+      transform: rotate(35deg);
+      letter-spacing: 0.5px;
+    }
+
+    .producto-card .cat-icon {
+      font-size: 24px;
+      margin-bottom: 6px;
+    }
+
+    .producto-card .nombre { font-weight: 600; font-size: 15px; color: var(--text); }
+    .producto-card .variante { font-size: 12px; color: var(--text-muted); margin-top: 2px; }
+    .producto-card .precio { font-size: 18px; font-weight: 700; color: var(--accent); margin-top: 8px; }
     .producto-card .stock-badge {
       font-size: 11px;
       font-weight: 600;
@@ -129,8 +287,8 @@
 
     .panel-carrito {
       width: 400px;
-      background: #fff;
-      border-left: 1px solid #e0d6ca;
+      background: var(--bg-card);
+      border-left: 1px solid var(--border);
       display: flex;
       flex-direction: column;
     }
@@ -138,8 +296,8 @@
     .panel-carrito h2 {
       padding: 16px;
       font-size: 16px;
-      color: #5c3a1e;
-      border-bottom: 1px solid #e0d6ca;
+      color: var(--accent);
+      border-bottom: 1px solid var(--border);
     }
 
     .lista-carrito {
@@ -153,42 +311,69 @@
       justify-content: space-between;
       align-items: center;
       padding: 8px 0;
-      border-bottom: 1px solid #f0e8e0;
+      border-bottom: 1px solid var(--border);
       font-size: 14px;
+      animation: fadeSlideIn 0.2s ease;
+    }
+
+    @keyframes fadeSlideIn {
+      from { opacity: 0; transform: translateY(-8px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    @keyframes fadeSlideOut {
+      from { opacity: 1; transform: translateY(0); max-height: 100px; }
+      to { opacity: 0; transform: translateY(-8px); max-height: 0; }
+    }
+
+    .item-carrito.eliminando {
+      animation: fadeSlideOut 0.25s ease forwards;
+      overflow: hidden;
     }
 
     .item-carrito .info { flex: 1; }
     .item-carrito .info .nombre-item { font-weight: 500; }
-    .item-carrito .info .detalle-item { font-size: 12px; color: #8a7a6a; }
+    .item-carrito .info .detalle-item { font-size: 12px; color: var(--text-muted); }
 
     .item-carrito .acciones {
       display: flex;
       align-items: center;
-      gap: 8px;
+      gap: 6px;
     }
 
     .item-carrito .acciones button {
-      background: #e8ddd2;
+      background: var(--border);
       border: none;
-      width: 24px;
-      height: 24px;
+      width: 28px;
+      height: 28px;
       border-radius: 50%;
       cursor: pointer;
       font-size: 14px;
       font-weight: 600;
-      color: #5c3a1e;
+      color: var(--accent);
       display: flex;
       align-items: center;
       justify-content: center;
+      transition: background 0.12s, transform 0.1s;
     }
 
-    .item-carrito .acciones button:hover { background: #d4c4b3; }
+    .item-carrito .acciones button:hover { background: var(--accent); color: #fff; }
+    .item-carrito .acciones button:active { transform: scale(0.9); }
+    .item-carrito .acciones .btn-eliminar-item {
+      width: 22px;
+      height: 22px;
+      font-size: 12px;
+      background: transparent;
+      color: var(--red);
+      border-radius: 4px;
+    }
+    .item-carrito .acciones .btn-eliminar-item:hover { background: #fde0e0; color: var(--red); }
     .item-carrito .acciones .cantidad { font-weight: 600; min-width: 20px; text-align: center; }
     .item-carrito .subtotal-item { font-weight: 600; min-width: 70px; text-align: right; }
 
     .footer-carrito {
       padding: 16px;
-      border-top: 1px solid #e0d6ca;
+      border-top: 1px solid var(--border);
     }
 
     .total-final {
@@ -197,28 +382,29 @@
       font-size: 20px;
       font-weight: 700;
       margin-bottom: 12px;
-      color: #2d2a24;
+      color: var(--text);
     }
 
     #btn-pagar {
       width: 100%;
       padding: 14px;
-      background: #5c3a1e;
+      background: var(--accent);
       color: #fff;
       border: none;
       border-radius: 10px;
       font-size: 16px;
       font-weight: 600;
       cursor: pointer;
-      transition: background 0.15s;
+      transition: background 0.15s, transform 0.1s;
     }
 
-    #btn-pagar:hover { background: #7a4f2e; }
-    #btn-pagar:disabled { background: #ccc; cursor: not-allowed; }
+    #btn-pagar:hover { background: var(--accent-hover); }
+    #btn-pagar:disabled { background: #ccc; cursor: not-allowed; transform: none; }
+    #btn-pagar:not(:disabled):active { transform: scale(0.98); }
 
     .carrito-vacio {
       text-align: center;
-      color: #8a7a6a;
+      color: var(--text-muted);
       padding: 40px 16px;
       font-size: 14px;
     }
@@ -227,7 +413,7 @@
       display: none;
       position: fixed;
       inset: 0;
-      background: rgba(0,0,0,0.4);
+      background: rgba(0,0,0,0.5);
       align-items: center;
       justify-content: center;
       z-index: 100;
@@ -236,23 +422,24 @@
     .modal-overlay.mostrar { display: flex; }
 
     .modal {
-      background: #fff;
+      background: var(--bg-card);
       border-radius: 14px;
       padding: 24px;
       width: 360px;
       max-width: 90vw;
     }
 
-    .modal h2 { margin-bottom: 16px; color: #5c3a1e; }
-    .modal label { display: block; font-size: 14px; font-weight: 500; margin-bottom: 4px; color: #5c3a1e; }
+    .modal h2 { margin-bottom: 16px; color: var(--accent); }
+    .modal label { display: block; font-size: 14px; font-weight: 500; margin-bottom: 4px; color: var(--accent); }
     .modal select, .modal textarea {
       width: 100%;
       padding: 10px;
-      border: 1px solid #d4c4b3;
+      border: 1px solid var(--border);
       border-radius: 8px;
       font-size: 14px;
       margin-bottom: 12px;
-      background: #faf7f4;
+      background: var(--bg);
+      color: var(--text);
     }
     .modal textarea { resize: vertical; min-height: 60px; }
     .modal-botones { display: flex; gap: 8px; justify-content: flex-end; }
@@ -264,41 +451,48 @@
       cursor: pointer;
       border: none;
     }
-    .modal-botones .btn-cancel { background: #e8ddd2; color: #5c3a1e; }
-    .modal-botones .btn-confirm { background: #5c3a1e; color: #fff; }
-    .modal-botones .btn-cancel:hover { background: #d4c4b3; }
-    .modal-botones .btn-confirm:hover { background: #7a4f2e; }
+    .modal-botones .btn-cancel { background: var(--border); color: var(--accent); }
+    .modal-botones .btn-confirm { background: var(--accent); color: #fff; }
+    .modal-botones .btn-cancel:hover { opacity: 0.8; }
+    .modal-botones .btn-confirm:hover { opacity: 0.9; }
 
     .toast {
       position: fixed;
       bottom: 24px;
       left: 50%;
       transform: translateX(-50%);
-      background: #2d2a24;
-      color: #fff;
+      background: var(--text);
+      color: var(--bg);
       padding: 12px 24px;
       border-radius: 8px;
       font-size: 14px;
       opacity: 0;
       transition: opacity 0.3s;
       pointer-events: none;
+      z-index: 9999;
+      max-width: 90vw;
+      text-align: center;
     }
     .toast.mostrar { opacity: 1; }
+
+    .toast.exito { background: var(--green); color: #fff; }
+    .toast.error { background: var(--red); color: #fff; }
 
     .buscador {
       width: 100%;
       padding: 10px 14px;
-      border: 1px solid #d4c4b3;
+      border: 1px solid var(--border);
       border-radius: 8px;
       font-size: 14px;
       margin-bottom: 12px;
-      background: #faf7f4;
+      background: var(--bg-card);
+      color: var(--text);
     }
 
     .login-overlay {
       position: fixed;
       inset: 0;
-      background: #5c3a1e;
+      background: var(--bg-header);
       display: flex;
       align-items: center;
       justify-content: center;
@@ -306,7 +500,7 @@
     }
 
     .login-card {
-      background: #fff;
+      background: var(--bg-card);
       border-radius: 16px;
       padding: 32px;
       width: 340px;
@@ -315,12 +509,12 @@
 
     .login-card h1 {
       font-size: 24px;
-      color: #5c3a1e;
+      color: var(--accent);
       margin-bottom: 4px;
     }
 
     .login-card p {
-      color: #8a7a6a;
+      color: var(--text-muted);
       font-size: 14px;
       margin-bottom: 20px;
     }
@@ -328,17 +522,18 @@
     .login-card input {
       width: 100%;
       padding: 12px;
-      border: 1px solid #d4c4b3;
+      border: 1px solid var(--border);
       border-radius: 8px;
       font-size: 14px;
       margin-bottom: 10px;
-      background: #faf7f4;
+      background: var(--bg);
+      color: var(--text);
     }
 
     .login-card button {
       width: 100%;
       padding: 12px;
-      background: #5c3a1e;
+      background: var(--accent);
       color: #fff;
       border: none;
       border-radius: 8px;
@@ -348,10 +543,10 @@
       margin-top: 4px;
     }
 
-    .login-card button:hover { background: #7a4f2e; }
-    .login-error { color: #b33a3a; font-size: 13px; margin-top: 8px; }
+    .login-card button:hover { background: var(--accent-hover); }
+    .login-error { color: var(--red); font-size: 13px; margin-top: 8px; }
 
-    .app-container { display: none; flex-direction: column; height: 100vh; }
+    .app-container { display: none; flex-direction: column; height: 100vh; animation: fadeIn 0.3s ease; }
     .app-container.mostrar { display: flex; }
 
     .user-info {
@@ -371,6 +566,50 @@
       font-size: 12px;
     }
     #btn-logout:hover { background: rgba(255,255,255,0.2); }
+
+    .theme-toggle {
+      background: rgba(255,255,255,0.15);
+      border: none;
+      color: #fff;
+      width: 36px;
+      height: 36px;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 16px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: background 0.15s;
+    }
+    .theme-toggle:hover { background: rgba(255,255,255,0.25); }
+
+    /* Touch-friendly mode */
+    @media (max-width: 900px), (hover: none) and (pointer: coarse) {
+      .productos-grid {
+        grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)) !important;
+        gap: 8px !important;
+      }
+      .producto-card { padding: 12px !important; min-height: 100px; }
+      .producto-card .precio { font-size: 16px !important; }
+      .producto-card .nombre { font-size: 14px !important; }
+
+      .item-carrito .acciones button { width: 36px !important; height: 36px !important; font-size: 16px !important; }
+      .item-carrito .acciones .btn-eliminar-item { width: 30px !important; height: 30px !important; }
+
+      .panel-carrito { width: 340px !important; }
+
+      .buscador { padding: 14px !important; font-size: 16px !important; }
+
+      .categorias button { padding: 10px 20px !important; font-size: 15px !important; }
+
+      #btn-pagar { padding: 16px !important; font-size: 17px !important; }
+    }
+
+    @media (max-width: 600px) {
+      .layout { flex-direction: column; }
+      .panel-carrito { width: 100% !important; border-left: none !important; border-top: 1px solid var(--border); max-height: 50vh; }
+      .productos-grid { grid-template-columns: repeat(auto-fill, minmax(110px, 1fr)) !important; }
+    }
   </style>
 </head>
 <body>
@@ -386,37 +625,53 @@
     </div>
   </div>
 
+  <div class="sidebar-overlay" id="sidebarOverlay"></div>
+  <div class="sidebar" id="sidebar">
+    <div class="sidebar-header">
+      <h2>Casa Caribe</h2>
+      <button class="sidebar-close" id="sidebarClose">&times;</button>
+    </div>
+    <div class="sidebar-nav">
+      <button class="sidebar-btn" data-action="historial"><span class="icon">📋</span> Historial</button>
+      <button class="sidebar-btn" data-action="cierre"><span class="icon">📊</span> Cierre de Jornada</button>
+      <button class="sidebar-btn" data-action="caja"><span class="icon">💰</span> Movimientos de Caja</button>
+      <button class="sidebar-btn" data-action="pendientes"><span class="icon">📌</span> Cuentas Pendientes</button>
+      <button class="sidebar-btn" data-action="descarte"><span class="icon">🗑️</span> Descartar Productos</button>
+      <div class="sidebar-divider"></div>
+      <button class="sidebar-btn admin-only" data-action="abrir-caja"><span class="icon">🔓</span> Abrir Caja</button>
+      <button class="sidebar-btn admin-only" data-action="productos"><span class="icon">🏷️</span> Gestionar Productos</button>
+      <button class="sidebar-btn admin-only" data-action="usuarios"><span class="icon">👥</span> Gestionar Usuarios</button>
+      <button class="sidebar-btn admin-only" data-action="historial-cierres"><span class="icon">📁</span> Historial de Cierres</button>
+      <button class="sidebar-btn admin-only" data-action="historial-movimientos"><span class="icon">💸</span> Historial de Movimientos</button>
+      <div class="sidebar-divider"></div>
+      <button class="sidebar-btn" data-action="logout"><span class="icon">🚪</span> Cerrar Sesión</button>
+    </div>
+  </div>
+
   <div class="app-container" id="appContainer">
   <header>
-    <h1>Casa Caribe — Panadería</h1>
     <div style="display:flex;align-items:center;gap:12px">
-      <button id="btn-historial" style="background:rgba(255,255,255,0.15);border:none;color:#fff;padding:8px 16px;border-radius:8px;cursor:pointer;font-size:14px;font-weight:500">📋 Historial</button>
-      <button id="btn-cierre" style="background:rgba(255,255,255,0.15);border:none;color:#fff;padding:8px 16px;border-radius:8px;cursor:pointer;font-size:14px;font-weight:500">📊 Cierre</button>
-      <button id="btn-productos" class="btn-admin" style="background:rgba(255,255,255,0.15);border:none;color:#fff;padding:8px 16px;border-radius:8px;cursor:pointer;font-size:14px;font-weight:500">🏷️ Productos</button>
-      <button id="btn-usuarios" class="btn-admin" style="background:rgba(255,255,255,0.15);border:none;color:#fff;padding:8px 16px;border-radius:8px;cursor:pointer;font-size:14px;font-weight:500">👥 Usuarios</button>
-      <button id="btn-historial-cierres" class="btn-admin" style="background:rgba(255,255,255,0.15);border:none;color:#fff;padding:8px 16px;border-radius:8px;cursor:pointer;font-size:14px;font-weight:500">📁 Cierres</button>
-      <button id="btn-historial-movimientos" class="btn-admin" style="background:rgba(255,255,255,0.15);border:none;color:#fff;padding:8px 16px;border-radius:8px;cursor:pointer;font-size:14px;font-weight:500">💸 Movimientos</button>
-      <button id="btn-abrir-caja" style="background:rgba(255,255,255,0.15);border:none;color:#fff;padding:8px 16px;border-radius:8px;cursor:pointer;font-size:14px;font-weight:500">🔓 Abrir Caja</button>
-      <button id="btn-caja" style="background:rgba(255,255,255,0.15);border:none;color:#fff;padding:8px 16px;border-radius:8px;cursor:pointer;font-size:14px;font-weight:500">💰 Caja</button>
-      <button id="btn-pendientes" style="background:rgba(255,255,255,0.15);border:none;color:#fff;padding:8px 16px;border-radius:8px;cursor:pointer;font-size:14px;font-weight:500">📌 Pendientes</button>
-      <button id="btn-descarte" style="background:rgba(255,255,255,0.15);border:none;color:#fff;padding:8px 16px;border-radius:8px;cursor:pointer;font-size:14px;font-weight:500">🗑️ Descartar</button>
+      <button class="hamburger" id="btnHamburger">&#9776;</button>
+      <h1>Casa Caribe — Panadería</h1>
+    </div>
+    <div class="header-actions">
+      <button class="theme-toggle" id="btnThemeToggle" title="Cambiar tema">🌙</button>
       <div class="total-venta-header" id="totalHeader">$ 0,00</div>
       <div class="user-info">
         <div id="userNameDisplay"></div>
         <div class="rol" id="userRolDisplay"></div>
-        <button id="btn-logout">Salir</button>
       </div>
     </div>
   </header>
 
   <div class="layout">
     <div class="panel-productos">
-      <div id="todayBar" style="background:#e4f0e0;border-radius:10px;padding:10px 16px;margin-bottom:12px;display:flex;justify-content:space-between;align-items:center;font-size:14px">
-        <span style="font-weight:600;color:#2d6a1e">📅 Hoy</span>
+      <div id="todayBar" style="background:var(--green);border-radius:10px;padding:10px 16px;margin-bottom:12px;display:flex;justify-content:space-between;align-items:center;font-size:14px;color:#fff">
+        <span style="font-weight:600">📅 Hoy</span>
         <span style="display:flex;align-items:center;gap:16px">
-          <span id="todayCount" style="color:#2d6a1e"></span>
-          <span id="todayPendiente" style="color:#8a6a00;font-size:12px"></span>
-          <span id="todayTotal" style="font-weight:700;color:#2d6a1e;font-size:16px"></span>
+          <span id="todayCount" style="color:#fff"></span>
+          <span id="todayPendiente" style="color:#fef3d0;font-size:12px"></span>
+          <span id="todayTotal" style="font-weight:700;color:#fff;font-size:16px"></span>
         </span>
       </div>
       <div class="categorias" id="categorias"></div>
@@ -759,6 +1014,105 @@
   <script>
     const carrito = [];
 
+    // === SIDEBAR ===
+    const $sidebar = document.getElementById('sidebar');
+    const $sidebarOverlay = document.getElementById('sidebarOverlay');
+
+    document.getElementById('btnHamburger').addEventListener('click', () => {
+      $sidebar.classList.add('abierto');
+      $sidebarOverlay.classList.add('abierto');
+    });
+
+    function cerrarSidebar() {
+      $sidebar.classList.remove('abierto');
+      $sidebarOverlay.classList.remove('abierto');
+    }
+
+    document.getElementById('sidebarClose').addEventListener('click', cerrarSidebar);
+    $sidebarOverlay.addEventListener('click', cerrarSidebar);
+
+    const sidebarActions = {
+      'historial': () => { cerrarSidebar(); abrirHistorial(); },
+      'cierre': () => { cerrarSidebar(); abrirCierre(); },
+      'caja': () => { cerrarSidebar(); abrirCaja(); },
+      'pendientes': () => { cerrarSidebar(); abrirPendientes(); },
+      'descarte': () => { cerrarSidebar(); abrirDescarte(); },
+      'abrir-caja': () => { cerrarSidebar(); abrirCajaInicial(); },
+      'productos': () => { cerrarSidebar(); abrirProductos(); },
+      'usuarios': () => { cerrarSidebar(); abrirUsuarios(); },
+      'historial-cierres': () => { cerrarSidebar(); abrirHistorialCierres(); },
+      'historial-movimientos': () => { cerrarSidebar(); abrirHistorialMovimientos(); },
+      'logout': () => {
+        cerrarSidebar();
+        usuarioActual = null;
+        document.getElementById('appContainer').classList.remove('mostrar');
+        document.getElementById('loginOverlay').style.display = 'flex';
+        document.getElementById('loginUser').value = '';
+        document.getElementById('loginPass').value = '';
+        document.getElementById('loginError').textContent = '';
+        document.getElementById('todayTotal').textContent = formatear(0);
+        document.getElementById('todayCount').textContent = '0 ventas';
+        document.getElementById('todayPendiente').textContent = '';
+        carrito.length = 0;
+        renderCarrito();
+      }
+    };
+
+    document.querySelectorAll('.sidebar-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const action = btn.dataset.action;
+        if (sidebarActions[action]) sidebarActions[action]();
+      });
+    });
+
+    // === TEMA OSCURO ===
+    function aplicarTema(tema) {
+      if (tema === 'dark') {
+        document.body.classList.add('dark');
+        document.getElementById('btnThemeToggle').textContent = '☀️';
+      } else {
+        document.body.classList.remove('dark');
+        document.getElementById('btnThemeToggle').textContent = '🌙';
+      }
+      localStorage.setItem('casacaribe-tema', tema);
+    }
+
+    const temaGuardado = localStorage.getItem('casacaribe-tema') || 'light';
+    aplicarTema(temaGuardado);
+
+    document.getElementById('btnThemeToggle').addEventListener('click', () => {
+      const actual = document.body.classList.contains('dark') ? 'dark' : 'light';
+      aplicarTema(actual === 'dark' ? 'light' : 'dark');
+    });
+
+    // === NOTIFICACIONES CON SONIDO ===
+    function sonidoExito() {
+      try {
+        const ctx = new (window.AudioContext || window.webkitAudioContext)();
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(523, ctx.currentTime);
+        osc.frequency.setValueAtTime(659, ctx.currentTime + 0.1);
+        osc.frequency.setValueAtTime(784, ctx.currentTime + 0.2);
+        gain.gain.setValueAtTime(0.15, ctx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.4);
+        osc.start(ctx.currentTime);
+        osc.stop(ctx.currentTime + 0.4);
+      } catch(e) {}
+    }
+
+    function mostrarNotificacion(msg, tipo = '') {
+      $toast.className = 'toast';
+      if (tipo) $toast.classList.add(tipo);
+      $toast.textContent = msg;
+      $toast.classList.add('mostrar');
+      if (tipo === 'exito') sonidoExito();
+      setTimeout(() => $toast.classList.remove('mostrar'), 3000);
+    }
+
     const $categorias = document.getElementById('categorias');
     const $grid = document.getElementById('productosGrid');
     const $buscador = document.getElementById('buscador');
@@ -926,6 +1280,15 @@
       }
     }
 
+    const catIcons = {
+      'Panadería': '🍞',
+      'Pastelería': '🎂',
+      'Facturas': '🥐',
+      'Salado': '🧅',
+      'Bebidas': '☕',
+      'Otros': '📦'
+    };
+
     function renderProductos(productos) {
       const filtro = $buscador.value.toLowerCase();
       const filtrados = productos.filter(p =>
@@ -934,14 +1297,17 @@
 
       $grid.innerHTML = filtrados.map(p => {
         const stock = p.stock_actual;
+        const agotado = stock === 0;
         let stockCls = 'stock-bien';
         if (stock === 0) stockCls = 'stock-cero';
         else if (stock <= 3) stockCls = 'stock-mal';
         else if (stock <= 10) stockCls = 'stock-medio';
         const stockTxt = stock === 0 ? 'Sin stock' : `${stock} unit`;
+        const icon = catIcons[p.categoria] || '📦';
         return `
-        <div class="producto-card" data-id="${p.id}" data-nombre="${p.nombre}" data-variante="${p.variante}" data-precio="${p.precio_venta}" data-stock="${stock}" data-codigo="${p.codigo || ''}">
-          ${p.codigo ? `<div style="font-size:11px;color:#8a7a6a;font-weight:600;margin-bottom:2px">${p.codigo}</div>` : ''}
+        <div class="producto-card ${agotado ? 'agotado' : ''}" data-id="${p.id}" data-nombre="${p.nombre}" data-variante="${p.variante}" data-precio="${p.precio_venta}" data-stock="${stock}" data-codigo="${p.codigo || ''}">
+          <div class="cat-icon">${icon}</div>
+          ${p.codigo ? `<div style="font-size:11px;color:var(--text-muted);font-weight:600;margin-bottom:2px">${p.codigo}</div>` : ''}
           <div class="nombre">${p.nombre}</div>
           <div class="precio">${formatear(p.precio_venta)}</div>
           <div class="stock-badge ${stockCls}">${stockTxt}</div>
@@ -950,6 +1316,7 @@
 
       $grid.querySelectorAll('.producto-card').forEach(card => {
         card.addEventListener('click', () => {
+          if (card.classList.contains('agotado')) return;
           const id = parseInt(card.dataset.id);
           const nombre = card.dataset.nombre;
           const variante = card.dataset.variante;
@@ -1007,26 +1374,45 @@
         return `
         <div class="item-carrito">
           <div class="info">
-            <div class="nombre-item">${item.codigo ? `<span style="color:#8a7a6a;font-size:11px;font-weight:600;margin-right:4px">${item.codigo}</span>` : ''}${item.nombre}</div>
+            <div class="nombre-item">${item.codigo ? `<span style="color:var(--text-muted);font-size:11px;font-weight:600;margin-right:4px">${item.codigo}</span>` : ''}${item.nombre}</div>
             <div class="detalle-item">${item.variante} · ${formatear(item.precio_unitario)} c/u</div>
-            <div style="font-size:11px;color:${stockOk ? '#8a7a6a' : '#b33a3a'};margin-top:2px">${stockOk ? `queda ${stockRestante} unit` : 'stock insuficiente'}</div>
+            <div style="font-size:11px;color:${stockOk ? 'var(--text-muted)' : 'var(--red)'};margin-top:2px">${stockOk ? `queda ${stockRestante} unit` : 'stock insuficiente'}</div>
           </div>
           <div class="acciones">
             <button class="btn-restar" data-id="${item.producto_id}">−</button>
             <span class="cantidad">${item.cantidad}</span>
             <button class="btn-sumar" data-id="${item.producto_id}" ${!stockOk ? 'style="opacity:0.4;pointer-events:none"' : ''}>+</button>
+            <button class="btn-eliminar-item" data-id="${item.producto_id}" title="Eliminar">&times;</button>
           </div>
           <div class="subtotal-item">${formatear(item.subtotal)}</div>
         </div>`;
       }).join('');
 
       $listaCarrito.querySelectorAll('.btn-restar').forEach(btn => {
-        btn.addEventListener('click', () => eliminarDelCarrito(parseInt(btn.dataset.id)));
+        btn.addEventListener('click', () => {
+          const id = parseInt(btn.dataset.id);
+          const item = carrito.find(i => i.producto_id === id);
+          if (item && item.cantidad === 1) {
+            const itemEl = btn.closest('.item-carrito');
+            itemEl.classList.add('eliminando');
+            setTimeout(() => eliminarDelCarrito(id), 250);
+          } else {
+            eliminarDelCarrito(id);
+          }
+        });
       });
       $listaCarrito.querySelectorAll('.btn-sumar').forEach(btn => {
         btn.addEventListener('click', () => {
           const item = carrito.find(i => i.producto_id === parseInt(btn.dataset.id));
           if (item) agregarAlCarrito(item.producto_id, item.nombre, item.variante, item.precio_unitario);
+        });
+      });
+      $listaCarrito.querySelectorAll('.btn-eliminar-item').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const id = parseInt(btn.dataset.id);
+          const itemEl = btn.closest('.item-carrito');
+          itemEl.classList.add('eliminando');
+          setTimeout(() => eliminarDelCarrito(id), 250);
         });
       });
 
@@ -1197,7 +1583,7 @@
         if (cambio > 0) msg += ` (cambio: ${formatear(cambio)})`;
         if (suma < totalConDescuento) msg += ` — fiado: ${formatear(totalConDescuento - suma)}`;
 
-        mostrarToast(msg);
+        mostrarNotificacion(msg, 'exito');
         carrito.length = 0;
         renderCarrito();
         $modalPago.classList.remove('mostrar');
@@ -1304,7 +1690,6 @@
       }
     }
 
-    document.getElementById('btn-cierre').addEventListener('click', abrirCierre);
     document.getElementById('btnCerrarCierre').addEventListener('click', () => {
       document.getElementById('modalCierre').classList.remove('mostrar');
     });
@@ -1319,7 +1704,6 @@
       }
     }
 
-    document.getElementById('btn-abrir-caja').addEventListener('click', abrirCajaInicial);
     document.getElementById('btnCerrarApertura').addEventListener('click', () => {
       document.getElementById('modalApertura').classList.remove('mostrar');
     });
@@ -1841,7 +2225,6 @@
       });
     }
 
-    document.getElementById('btn-historial-cierres').addEventListener('click', abrirHistorialCierres);
     document.getElementById('btnCerrarHistorialCierres').addEventListener('click', () => {
       document.getElementById('modalHistorialCierres').classList.remove('mostrar');
     });
@@ -1908,13 +2291,11 @@
       document.getElementById('modalPendientes').classList.add('mostrar');
     }
 
-    document.getElementById('btn-pendientes').addEventListener('click', abrirPendientes);
     document.getElementById('btnCerrarPendientes').addEventListener('click', () => {
       document.getElementById('modalPendientes').classList.remove('mostrar');
     });
 
 
-    document.getElementById('btn-historial').addEventListener('click', abrirHistorial);
     document.getElementById('btnCerrarHistorial').addEventListener('click', () => {
       document.getElementById('modalHistorial').classList.remove('mostrar');
     });
@@ -1986,7 +2367,6 @@
       document.getElementById('cajaSaldo').textContent = formatear(totalIngresos - totalEgresos);
     }
 
-    document.getElementById('btn-caja').addEventListener('click', abrirCaja);
     document.getElementById('btnCerrarCaja').addEventListener('click', () => {
       document.getElementById('modalCaja').classList.remove('mostrar');
     });
@@ -2058,7 +2438,6 @@
       document.getElementById('modalUsuarios').classList.add('mostrar');
     }
 
-    document.getElementById('btn-usuarios').addEventListener('click', abrirUsuarios);
     document.getElementById('btnCerrarUsuarios').addEventListener('click', () => {
       document.getElementById('modalUsuarios').classList.remove('mostrar');
     });
@@ -2134,7 +2513,6 @@
       }
     }
 
-    document.getElementById('btn-productos').addEventListener('click', abrirProductos);
     document.getElementById('btnCerrarProductos').addEventListener('click', async () => {
       const productos = document.querySelectorAll('.prod-nombre');
       for (const el of productos) {
@@ -2195,14 +2573,14 @@
 
       cargarTodayBar();
 
-      const adminBtns = document.querySelectorAll('.btn-admin');
+      const adminBtns = document.querySelectorAll('.sidebar-btn.admin-only');
       for (const btn of adminBtns) {
-        btn.style.display = user.rol === 'admin' ? '' : 'none';
+        if (user.rol === 'admin') {
+          btn.classList.add('admin-visible');
+        } else {
+          btn.classList.remove('admin-visible');
+        }
       }
-
-      window.api.getApertura(usuarioActual.id).then(apertura => {
-        document.getElementById('btn-abrir-caja').style.display = apertura ? 'none' : '';
-      }).catch(() => {});
 
       initApp();
     }
@@ -2233,21 +2611,6 @@
       if (e.key === 'Enter') document.getElementById('btn-login').click();
     });
 
-    document.getElementById('btn-logout').addEventListener('click', () => {
-      usuarioActual = null;
-      document.getElementById('appContainer').classList.remove('mostrar');
-      document.getElementById('loginOverlay').style.display = 'flex';
-      document.getElementById('loginUser').value = '';
-      document.getElementById('loginPass').value = '';
-      document.getElementById('loginError').textContent = '';
-      document.getElementById('todayTotal').textContent = formatear(0);
-      document.getElementById('todayCount').textContent = '0 ventas';
-      document.getElementById('todayPendiente').textContent = '';
-      document.getElementById('btn-abrir-caja').style.display = '';
-      carrito.length = 0;
-      renderCarrito();
-    });
-
     async function cargarTodayBar() {
       const data = await window.api.getTodayTotal(usuarioActual.id);
       document.getElementById('todayTotal').textContent = formatear(data.total);
@@ -2264,6 +2627,18 @@
       renderCategorias(categorias);
       cargarProductos();
       cargarTodayBar();
+      alertarStockBajo();
+    }
+
+    async function alertarStockBajo() {
+      try {
+        const todos = await window.api.getAllProducts();
+        const bajos = todos.filter(p => p.stock_actual > 0 && p.stock_actual <= 5);
+        if (bajos.length > 0) {
+          const lista = bajos.map(p => `${p.codigo ? p.codigo + ' ' : ''}${p.nombre} (${p.stock_actual})`).join(', ');
+          mostrarNotificacion(`⚠️ Stock bajo: ${lista}`, 'error');
+        }
+      } catch(e) {}
     }
 
     let editarVentaIdActual = null;
@@ -2729,8 +3104,6 @@
       cargarProductosDescarte(e.target.value);
     });
 
-    document.getElementById('btn-descarte').addEventListener('click', abrirDescarte);
-
     document.getElementById('btnCerrarDescarte').addEventListener('click', () => {
       document.getElementById('modalDescarte').classList.remove('mostrar');
     });
@@ -2886,7 +3259,6 @@
       `).join('');
     }
 
-    document.getElementById('btn-historial-movimientos').addEventListener('click', abrirHistorialMovimientos);
     document.getElementById('btnCerrarHistorialMovimientos').addEventListener('click', () => {
       document.getElementById('modalHistorialMovimientos').classList.remove('mostrar');
     });
