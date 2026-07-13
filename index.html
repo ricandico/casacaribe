@@ -1166,6 +1166,45 @@
     </div>
   </div>
 
+  <!-- MODAL EDITAR GASTO -->
+  <div class="modal-overlay" id="modalEditarGasto">
+    <div class="modal" style="width:480px;max-width:95vw">
+      <h2>✏️ Editar Gasto</h2>
+      <input type="hidden" id="editGastoId">
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px">
+        <div>
+          <label style="font-size:12px;font-weight:600;color:#5c3a1e;display:block;margin-bottom:4px">Monto ($)</label>
+          <input id="editGastoMonto" type="number" min="0" step="any" style="width:100%;padding:10px;border:2px solid #d4c4b3;border-radius:8px;font-size:16px;font-weight:700">
+        </div>
+        <div>
+          <label style="font-size:12px;font-weight:600;color:#5c3a1e;display:block;margin-bottom:4px">Fecha</label>
+          <input id="editGastoFecha" type="date" style="width:100%;padding:10px;border:2px solid #d4c4b3;border-radius:8px;font-size:14px">
+        </div>
+      </div>
+      <div style="margin-bottom:12px">
+        <label style="font-size:12px;font-weight:600;color:#5c3a1e;display:block;margin-bottom:4px">Categoría</label>
+        <select id="editGastoCategoria" style="width:100%;padding:10px;border:2px solid #d4c4b3;border-radius:8px;font-size:14px"></select>
+      </div>
+      <div style="margin-bottom:12px">
+        <label style="font-size:12px;font-weight:600;color:#5c3a1e;display:block;margin-bottom:4px">Concepto</label>
+        <input id="editGastoConcepto" type="text" style="width:100%;padding:10px;border:2px solid #d4c4b3;border-radius:8px;font-size:14px">
+      </div>
+      <div style="margin-bottom:12px">
+        <label style="font-size:12px;font-weight:600;color:#5c3a1e;display:block;margin-bottom:4px">Proveedor</label>
+        <input id="editGastoProveedor" type="text" style="width:100%;padding:10px;border:2px solid #d4c4b3;border-radius:8px;font-size:14px">
+      </div>
+      <div style="margin-bottom:16px">
+        <label style="font-size:12px;font-weight:600;color:#5c3a1e;display:flex;align-items:center;gap:6px;cursor:pointer">
+          <input type="checkbox" id="editGastoRecurrente"> Gasto recurrente
+        </label>
+      </div>
+      <div class="modal-botones">
+        <button class="btn-cancel" id="btnCancelarEditGasto">Cancelar</button>
+        <button class="btn-confirm" id="btnGuardarEditGasto">Guardar Cambios</button>
+      </div>
+    </div>
+  </div>
+
   <div class="toast" id="toast"></div>
 
     </div>
@@ -3763,22 +3802,14 @@
       const gastos = await api.getGastos({});
       const g = gastos.find(x => x.id === id);
       if (!g) return;
-      const nuevoMonto = prompt('Monto ($)', g.monto);
-      if (nuevoMonto === null) return;
-      const nuevoConcepto = prompt('Concepto', g.concepto);
-      if (nuevoConcepto === null) return;
-      await api.updateGasto({
-        id: g.id,
-        monto: parseFloat(nuevoMonto) || g.monto,
-        fecha: g.fecha,
-        categoria_id: g.categoria_id,
-        concepto: nuevoConcepto || g.concepto,
-        proveedor: g.proveedor,
-        recurrente: g.recurrente,
-        notas: g.notas
-      });
-      mostrarNotificacion('Gasto actualizado', 'exito');
-      cargarGastosContabilidad();
+      document.getElementById('editGastoId').value = g.id;
+      document.getElementById('editGastoMonto').value = g.monto;
+      document.getElementById('editGastoFecha').value = g.fecha;
+      document.getElementById('editGastoCategoria').value = g.categoria_id;
+      document.getElementById('editGastoConcepto').value = g.concepto;
+      document.getElementById('editGastoProveedor').value = g.proveedor || '';
+      document.getElementById('editGastoRecurrente').checked = !!g.recurrente;
+      document.getElementById('modalEditarGasto').classList.add('mostrar');
     };
 
     window.contabEliminarGasto = async function(id) {
@@ -3873,6 +3904,42 @@
 
     // Set date defaults
     document.getElementById('contabFecha').value = new Date().toISOString().slice(0, 10);
+
+    // Modal editar gasto
+    document.getElementById('btnCancelarEditGasto').addEventListener('click', () => {
+      document.getElementById('modalEditarGasto').classList.remove('mostrar');
+    });
+
+    document.getElementById('btnGuardarEditGasto').addEventListener('click', async () => {
+      const id = parseInt(document.getElementById('editGastoId').value);
+      const monto = parseFloat(document.getElementById('editGastoMonto').value);
+      const fecha = document.getElementById('editGastoFecha').value;
+      const categoria_id = parseInt(document.getElementById('editGastoCategoria').value);
+      const concepto = document.getElementById('editGastoConcepto').value.trim();
+      const proveedor = document.getElementById('editGastoProveedor').value.trim();
+      const recurrente = document.getElementById('editGastoRecurrente').checked;
+
+      if (!monto || monto <= 0) return mostrarNotificacion('Ingresá un monto válido', 'error');
+      if (!fecha) return mostrarNotificacion('Seleccioná una fecha', 'error');
+      if (!concepto) return mostrarNotificacion('Ingresá un concepto', 'error');
+
+      await api.updateGasto({ id, monto, fecha, categoria_id, concepto, proveedor, recurrente, notas: '' });
+      document.getElementById('modalEditarGasto').classList.remove('mostrar');
+      mostrarNotificacion('Gasto actualizado', 'exito');
+      sonidoExito();
+      cargarGastosContabilidad();
+    });
+
+    // Poblar select de categorías en modal editar al abrir
+    const _observerEditarGasto = new MutationObserver(() => {
+      if (document.getElementById('modalEditarGasto').classList.contains('mostrar')) {
+        const sel = document.getElementById('editGastoCategoria');
+        if (sel.options.length <= 1 && _contabCategoriasCache.length > 0) {
+          sel.innerHTML = _contabCategoriasCache.map(c => `<option value="${c.id}">${c.icono} ${c.nombre}</option>`).join('');
+        }
+      }
+    });
+    _observerEditarGasto.observe(document.getElementById('modalEditarGasto'), { attributes: true, attributeFilter: ['class'] });
   </script>
 </body>
 </html>
