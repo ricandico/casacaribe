@@ -605,7 +605,7 @@
     .filtros {
       display: flex;
       flex-wrap: wrap;
-      gap: 12px;
+      gap: 16px;
       align-items: flex-end;
       background: var(--bg-card);
       padding: 16px;
@@ -614,23 +614,22 @@
       margin-bottom: 20px;
     }
 
-    .filtro-grupo {
+    .filtros label {
       display: flex;
       flex-direction: column;
       gap: 6px;
-      flex: 1 1 180px;
-      min-width: 150px;
-    }
-
-    .filtro-grupo label {
       font-size: 0.85rem;
       font-weight: 600;
       color: var(--text-muted);
+      flex: 1 1 180px;
+      min-width: 140px;
     }
 
-    .filtro-grupo input,
-    .filtro-grupo select,
-    .btn-filtrar {
+    .filtros select,
+    .filtros input[type="date"],
+    .filtros input[type="month"],
+    .filtros input[type="text"],
+    .filtros button {
       height: 40px;
       padding: 0 12px;
       font-size: 0.9rem;
@@ -639,67 +638,38 @@
       background-color: #fff;
       color: var(--text);
       outline: none;
-      transition: all 0.2s ease;
+      font-family: inherit;
       box-sizing: border-box;
+      width: 100%;
     }
 
-    .btn-filtrar {
+    .filtros button {
       background: var(--accent);
       color: #fff;
       font-weight: bold;
-      cursor: pointer;
       border: none;
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      padding: 0 20px;
+      cursor: pointer;
+      transition: background 0.2s;
       flex: 0 0 auto;
+      width: auto;
+      padding: 0 24px;
     }
 
-    .btn-filtrar:hover {
+    .filtros button:hover {
       background: var(--accent-hover);
     }
 
-    .btn-secondary {
+    .filtros button.btn-secondary {
       background: #e8ddd2;
       color: var(--accent);
-      font-weight: 500;
-      cursor: pointer;
-      border: none;
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      padding: 0 14px;
-      height: 40px;
-      border-radius: 6px;
-      font-size: 0.9rem;
-      flex: 0 0 auto;
-      transition: all 0.2s ease;
     }
 
-    .btn-secondary:hover {
+    .filtros button.btn-secondary:hover {
       background: #d4c4b3;
     }
 
-    .btn-csv {
+    .filtros button.btn-csv {
       background: var(--blue);
-      color: #fff;
-      font-weight: 500;
-      cursor: pointer;
-      border: none;
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      padding: 0 14px;
-      height: 40px;
-      border-radius: 6px;
-      font-size: 0.9rem;
-      flex: 0 0 auto;
-      transition: all 0.2s ease;
-    }
-
-    .btn-csv:hover {
-      opacity: 0.9;
     }
 
     .contab-card {
@@ -1207,30 +1177,27 @@
       <!-- TAB REGISTRAR GASTO -->
       <div class="contab-panel" id="contabRegistrar" style="display:none">
         <div style="max-width:500px;margin:0 auto">
-          <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px">
-            <div class="filtro-grupo">
-              <label for="contabMonto">Monto ($)</label>
+          <div class="filtros" style="border:none;padding:0;background:none;margin-bottom:0">
+            <label>Monto ($)
               <input id="contabMonto" type="number" min="0" step="any" placeholder="0" style="font-size:16px;font-weight:700">
-            </div>
-            <div class="filtro-grupo">
-              <label for="contabFecha">Fecha</label>
+            </label>
+            <label>Fecha
               <input id="contabFecha" type="date">
-            </div>
+            </label>
           </div>
-          <div class="filtro-grupo" style="margin-bottom:12px">
-            <label for="contabCategoria">Categoría</label>
-            <select id="contabCategoria"></select>
+          <div class="filtros" style="border:none;padding:0;background:none;margin-bottom:0;flex-direction:column">
+            <label>Categoría
+              <select id="contabCategoria"></select>
+            </label>
+            <label>Concepto
+              <input id="contabConcepto" type="text" placeholder="Descripción del gasto">
+            </label>
+            <label>Proveedor (opcional)
+              <input id="contabProveedor" type="text" placeholder="Nombre del proveedor">
+            </label>
           </div>
-          <div class="filtro-grupo" style="margin-bottom:12px">
-            <label for="contabConcepto">Concepto</label>
-            <input id="contabConcepto" type="text" placeholder="Descripción del gasto">
-          </div>
-          <div class="filtro-grupo" style="margin-bottom:16px">
-            <label for="contabProveedor">Proveedor (opcional)</label>
-            <input id="contabProveedor" type="text" placeholder="Nombre del proveedor">
-          </div>
-          <div style="margin-bottom:16px">
-            <label style="font-size:0.85rem;font-weight:600;color:var(--text-muted);display:flex;align-items:center;gap:6px;cursor:pointer">
+          <div style="margin:12px 0 16px">
+            <label style="font-size:0.85rem;font-weight:600;color:var(--text-muted);display:inline-flex;align-items:center;gap:6px;cursor:pointer;flex:none">
               <input type="checkbox" id="contabRecurrente"> Gasto recurrente
             </label>
           </div>
@@ -1241,16 +1208,14 @@
       <!-- TODOS LOS GASTOS -->
       <div class="contab-panel" id="contabTodos" style="display:none">
         <div class="filtros">
-          <div class="filtro-grupo">
-            <label for="contabFiltroMes">Mes</label>
+          <label>Mes
             <input id="contabFiltroMes" type="month">
-          </div>
-          <div class="filtro-grupo">
-            <label for="contabFiltroCategoria">Categoría</label>
+          </label>
+          <label>Categoría
             <select id="contabFiltroCategoria">
               <option value="">Todas</option>
             </select>
-          </div>
+          </label>
           <button class="btn-filtrar" id="contabFiltrarGastos">Filtrar</button>
           <button class="btn-secondary" id="contabLimpiarFiltros">Limpiar</button>
           <button class="btn-csv" id="contabExportarCSV">📥 CSV</button>
@@ -1263,14 +1228,12 @@
       <!-- CATEGORÍAS -->
       <div class="contab-panel" id="contabCategorias" style="display:none">
         <div class="filtros">
-          <div class="filtro-grupo" style="flex:2 1 200px">
-            <label for="contabNuevaCat">Nueva categoría</label>
+          <label style="flex:2 1 200px">Nueva categoría
             <input id="contabNuevaCat" type="text" placeholder="Nombre">
-          </div>
-          <div class="filtro-grupo" style="flex:0 1 100px;min-width:70px">
-            <label for="contabNuevaCatIcono">Ícono</label>
+          </label>
+          <label style="flex:0 1 100px;min-width:70px">Ícono
             <input id="contabNuevaCatIcono" type="text" value="📦" maxlength="4" style="text-align:center">
-          </div>
+          </label>
           <button class="btn-filtrar" id="contabCrearCategoria">Crear</button>
         </div>
         <div id="contabGridCats" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:12px"></div>
@@ -1283,30 +1246,27 @@
     <div class="modal" style="width:480px;max-width:95vw;box-sizing:border-box">
       <h2 style="margin-top:0;color:var(--accent);font-size:20px">✏️ Editar Gasto</h2>
       <input type="hidden" id="editGastoId">
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px">
-        <div class="filtro-grupo">
-          <label for="editGastoMonto">Monto ($)</label>
+      <div class="filtros" style="border:none;padding:0;background:none;margin-bottom:0">
+        <label>Monto ($)
           <input id="editGastoMonto" type="number" min="0" step="any" style="font-size:16px;font-weight:700">
-        </div>
-        <div class="filtro-grupo">
-          <label for="editGastoFecha">Fecha</label>
+        </label>
+        <label>Fecha
           <input id="editGastoFecha" type="date">
-        </div>
+        </label>
       </div>
-      <div class="filtro-grupo" style="margin-bottom:12px">
-        <label for="editGastoCategoria">Categoría</label>
-        <select id="editGastoCategoria"></select>
+      <div class="filtros" style="border:none;padding:0;background:none;margin-bottom:0;flex-direction:column">
+        <label>Categoría
+          <select id="editGastoCategoria"></select>
+        </label>
+        <label>Concepto
+          <input id="editGastoConcepto" type="text">
+        </label>
+        <label>Proveedor
+          <input id="editGastoProveedor" type="text">
+        </label>
       </div>
-      <div class="filtro-grupo" style="margin-bottom:12px">
-        <label for="editGastoConcepto">Concepto</label>
-        <input id="editGastoConcepto" type="text">
-      </div>
-      <div class="filtro-grupo" style="margin-bottom:12px">
-        <label for="editGastoProveedor">Proveedor</label>
-        <input id="editGastoProveedor" type="text">
-      </div>
-      <div style="margin-bottom:16px">
-        <label style="font-size:0.85rem;font-weight:600;color:var(--text-muted);display:flex;align-items:center;gap:6px;cursor:pointer">
+      <div style="margin:12px 0 16px">
+        <label style="font-size:0.85rem;font-weight:600;color:var(--text-muted);display:inline-flex;align-items:center;gap:6px;cursor:pointer;flex:none">
           <input type="checkbox" id="editGastoRecurrente"> Gasto recurrente
         </label>
       </div>
