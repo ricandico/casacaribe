@@ -546,8 +546,34 @@
     .login-card button:hover { background: var(--accent-hover); }
     .login-error { color: var(--red); font-size: 13px; margin-top: 8px; }
 
-    .app-container { display: none; flex-direction: column; height: 100vh; animation: fadeIn 0.3s ease; }
+    .app-container { display: none; flex-direction: column; height: 100vh; }
     .app-container.mostrar { display: flex; }
+
+    .paginacion {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      margin-top: 12px;
+      padding-top: 10px;
+      border-top: 1px solid var(--border);
+    }
+    .paginacion button {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      color: var(--text);
+      padding: 6px 12px;
+      border-radius: 6px;
+      font-size: 12px;
+      cursor: pointer;
+      transition: background 0.12s;
+      min-width: 32px;
+      text-align: center;
+    }
+    .paginacion button:hover { background: var(--border); }
+    .paginacion button.activo { background: var(--accent); color: #fff; border-color: var(--accent); }
+    .paginacion button:disabled { opacity: 0.4; cursor: not-allowed; }
+    .paginacion .pag-info { font-size: 12px; color: var(--text-muted); margin: 0 8px; }
 
     .user-info {
       font-size: 13px;
@@ -767,11 +793,11 @@
         <div style="display:flex;gap:10px;align-items:flex-end;flex-wrap:wrap">
           <div style="flex:1;min-width:140px">
             <label style="font-size:12px;font-weight:600;color:#5c3a1e;display:block;margin-bottom:2px">Desde</label>
-            <input id="reporteDesde" type="date" style="width:100%;padding:8px;border:1px solid #d4c4b3;border-radius:6px;font-size:13px;background:#fff">
+            <input id="reporteDesde" type="date" style="width:100%;padding:8px;border:1px solid #d4c4b3;border-radius:6px;font-size:13px;background:#fff;height:36px">
           </div>
           <div style="flex:1;min-width:140px">
             <label style="font-size:12px;font-weight:600;color:#5c3a1e;display:block;margin-bottom:2px">Hasta</label>
-            <input id="reporteHasta" type="date" style="width:100%;padding:8px;border:1px solid #d4c4b3;border-radius:6px;font-size:13px;background:#fff">
+            <input id="reporteHasta" type="date" style="width:100%;padding:8px;border:1px solid #d4c4b3;border-radius:6px;font-size:13px;background:#fff;height:36px">
           </div>
           <button id="btnAplicarFiltros" style="background:#5c3a1e;color:#fff;border:none;padding:8px 18px;border-radius:6px;cursor:pointer;font-size:13px;font-weight:600;height:36px">Aplicar</button>
           <button id="btnLimpiarFiltros" style="background:#e8ddd2;color:#5c3a1e;border:none;padding:8px 14px;border-radius:6px;cursor:pointer;font-size:13px;font-weight:500;height:36px">Limpiar</button>
@@ -781,6 +807,7 @@
       <div id="reporteResumen" style="display:none"></div>
       <div id="reporteGraficos" style="display:none"></div>
       <div id="historialList"></div>
+      <div id="historialPaginacion"></div>
 
       <div class="modal-botones" style="margin-top:12px">
         <button class="btn-cancel" id="btnCerrarHistorial">Cerrar</button>
@@ -792,6 +819,7 @@
     <div class="modal" style="width:520px;max-height:85vh;overflow-y:auto">
       <h2>Cuentas Pendientes</h2>
       <div id="pendientesList"></div>
+      <div id="pendientesPaginacion"></div>
       <div class="modal-botones" style="margin-top:12px">
         <button class="btn-cancel" id="btnCerrarPendientes">Cerrar</button>
       </div>
@@ -844,6 +872,7 @@
     <div class="modal" style="width:560px;max-height:85vh;overflow-y:auto">
       <h2>Historial de Cierres</h2>
       <div id="historialCierresList"></div>
+      <div id="historialCierresPaginacion"></div>
       <div class="modal-botones" style="margin-top:12px">
         <button class="btn-cancel" id="btnCerrarHistorialCierres">Cerrar</button>
       </div>
@@ -857,15 +886,15 @@
         <div style="display:flex;gap:10px;align-items:flex-end;flex-wrap:wrap">
           <div style="flex:1;min-width:120px">
             <label style="font-size:12px;font-weight:600;color:#5c3a1e;display:block;margin-bottom:2px">Desde</label>
-            <input id="movDesde" type="date" style="width:100%;padding:8px;border:1px solid #d4c4b3;border-radius:6px;font-size:13px;background:#fff">
+            <input id="movDesde" type="date" style="width:100%;padding:8px;border:1px solid #d4c4b3;border-radius:6px;font-size:13px;background:#fff;height:36px">
           </div>
           <div style="flex:1;min-width:120px">
             <label style="font-size:12px;font-weight:600;color:#5c3a1e;display:block;margin-bottom:2px">Hasta</label>
-            <input id="movHasta" type="date" style="width:100%;padding:8px;border:1px solid #d4c4b3;border-radius:6px;font-size:13px;background:#fff">
+            <input id="movHasta" type="date" style="width:100%;padding:8px;border:1px solid #d4c4b3;border-radius:6px;font-size:13px;background:#fff;height:36px">
           </div>
           <div style="flex:1;min-width:120px">
             <label style="font-size:12px;font-weight:600;color:#5c3a1e;display:block;margin-bottom:2px">Tipo</label>
-            <select id="movTipo" style="width:100%;padding:8px;border:1px solid #d4c4b3;border-radius:6px;font-size:13px;background:#fff">
+            <select id="movTipo" style="width:100%;padding:8px;border:1px solid #d4c4b3;border-radius:6px;font-size:13px;background:#fff;height:36px">
               <option value="todos">Todos</option>
               <option value="ingreso">Ingresos</option>
               <option value="egreso">Egresos</option>
@@ -877,6 +906,7 @@
       </div>
       <div id="historialMovimientosResumen" style="display:flex;gap:8px;margin-bottom:14px"></div>
       <div id="historialMovimientosList"></div>
+      <div id="historialMovimientosPaginacion"></div>
       <div class="modal-botones" style="margin-top:12px">
         <button class="btn-cancel" id="btnCerrarHistorialMovimientos">Cerrar</button>
       </div>
@@ -998,6 +1028,7 @@
       <div id="vistaHistorial" style="display:none">
         <div id="historialDescartesResumen" style="display:flex;gap:8px;margin-bottom:14px"></div>
         <div id="historialDescartesList" style="max-height:400px;overflow-y:auto"></div>
+        <div id="historialDescartesPaginacion"></div>
       </div>
 
       <div style="display:flex;justify-content:space-between;align-items:center;margin-top:12px;padding-top:10px;border-top:1px solid #e0d6ca">
@@ -1120,6 +1151,55 @@
       $toast.classList.add('mostrar');
       if (tipo === 'exito') sonidoExito();
       setTimeout(() => $toast.classList.remove('mostrar'), 3000);
+    }
+
+    // === PAGINACIÓN GENÉRICA ===
+    const PAG_TAM = 10;
+
+    function paginar(items, pagina) {
+      const totalPaginas = Math.max(1, Math.ceil(items.length / PAG_TAM));
+      const p = Math.min(Math.max(1, pagina), totalPaginas);
+      const inicio = (p - 1) * PAG_TAM;
+      return { items: items.slice(inicio, inicio + PAG_TAM), pagina: p, totalPaginas, total: items.length };
+    }
+
+    function renderPaginacion(containerId, totalPaginas, paginaActual, callback) {
+      const el = document.getElementById(containerId);
+      if (!el) return;
+      if (totalPaginas <= 1) { el.innerHTML = ''; return; }
+
+      let html = '<div class="paginacion">';
+      html += `<button data-pag="${paginaActual - 1}" ${paginaActual <= 1 ? 'disabled' : ''}>&laquo;</button>`;
+
+      const rango = 2;
+      let paginas = [];
+      for (let i = 1; i <= totalPaginas; i++) {
+        if (i === 1 || i === totalPaginas || (i >= paginaActual - rango && i <= paginaActual + rango)) {
+          paginas.push(i);
+        } else if (paginas[paginas.length - 1] !== '...') {
+          paginas.push('...');
+        }
+      }
+
+      for (const p of paginas) {
+        if (p === '...') {
+          html += `<span class="pag-info">...</span>`;
+        } else {
+          html += `<button data-pag="${p}" class="${p === paginaActual ? 'activo' : ''}">${p}</button>`;
+        }
+      }
+
+      html += `<button data-pag="${paginaActual + 1}" ${paginaActual >= totalPaginas ? 'disabled' : ''}>&raquo;</button>`;
+      html += `<span class="pag-info">Página ${paginaActual} de ${totalPaginas}</span>`;
+      html += '</div>';
+      el.innerHTML = html;
+
+      el.querySelectorAll('button[data-pag]').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const pg = parseInt(btn.dataset.pag);
+          if (!isNaN(pg)) callback(pg);
+        });
+      });
     }
 
     const $categorias = document.getElementById('categorias');
@@ -1968,8 +2048,18 @@
       renderHistorialVentas(ventas);
     }
 
+    let _histVentasPagina = 1;
+    let _histVentasData = [];
+
     function renderHistorialVentas(ventas) {
+      _histVentasData = ventas;
+      _histVentasPagina = 1;
+      _renderHistorialVentasPagina();
+    }
+
+    function _renderHistorialVentasPagina() {
       const contenedor = document.getElementById('historialList');
+      const ventas = _histVentasData;
 
       let cajaAbierta = false;
       try {
@@ -1979,10 +2069,13 @@
 
       if (ventas.length === 0) {
         contenedor.innerHTML = '<div style="text-align:center;color:#8a7a6a;padding:20px">No hay ventas registradas</div>';
+        document.getElementById('historialPaginacion').innerHTML = '';
         return;
       }
 
-      contenedor.innerHTML = ventas.map(v => {
+      const { items, pagina, totalPaginas } = paginar(ventas, _histVentasPagina);
+
+      contenedor.innerHTML = items.map(v => {
         const fecha = v.fecha_hora ? v.fecha_hora.replace('T', ' ').slice(0, 16) : '';
         const colorPago = v.metodo_pago === 'Efectivo' ? '#2d6a1e' : v.metodo_pago === 'Mercado Pago' ? '#1a6a9e' : '#8a6a00';
         return `
@@ -2094,6 +2187,11 @@
           }
         });
       });
+
+      renderPaginacion('historialPaginacion', totalPaginas, pagina, (pg) => {
+        _histVentasPagina = pg;
+        _renderHistorialVentasPagina();
+      });
     }
 
     document.getElementById('btnAplicarFiltros').addEventListener('click', async () => {
@@ -2109,17 +2207,28 @@
       await cargarReporteAdmin();
     });
 
+    let _cierresPagina = 1;
+    let _cierresData = [];
+
     async function abrirHistorialCierres() {
       const cierres = await window.api.getHistorialCierres();
-      const contenedor = document.getElementById('historialCierresList');
+      _cierresData = cierres;
+      _cierresPagina = 1;
+      _renderCierresPagina();
+      document.getElementById('modalHistorialCierres').classList.add('mostrar');
+    }
 
-      if (cierres.length === 0) {
+    function _renderCierresPagina() {
+      const contenedor = document.getElementById('historialCierresList');
+      if (_cierresData.length === 0) {
         contenedor.innerHTML = '<div style="text-align:center;color:#8a7a6a;padding:20px">No hay cierres registrados</div>';
-        document.getElementById('modalHistorialCierres').classList.add('mostrar');
+        document.getElementById('historialCierresPaginacion').innerHTML = '';
         return;
       }
 
-      contenedor.innerHTML = cierres.map(c => {
+      const { items, pagina, totalPaginas } = paginar(_cierresData, _cierresPagina);
+
+      contenedor.innerHTML = items.map(c => {
         const porPago = JSON.parse(c.por_pago || '{}');
         const esDetallado = porPago['Efectivo'] && typeof porPago['Efectivo'] === 'object';
 
@@ -2186,8 +2295,6 @@
           </div>`;
       }).join('');
 
-      document.getElementById('modalHistorialCierres').classList.add('mostrar');
-
       contenedor.querySelectorAll('.btn-ver-movimientos').forEach(btn => {
         btn.addEventListener('click', async (e) => {
           e.stopPropagation();
@@ -2230,6 +2337,11 @@
           detalleDiv.dataset.cargado = '1';
         });
       });
+
+      renderPaginacion('historialCierresPaginacion', totalPaginas, pagina, (pg) => {
+        _cierresPagina = pg;
+        _renderCierresPagina();
+      });
     }
 
     document.getElementById('btnCerrarHistorialCierres').addEventListener('click', () => {
@@ -2237,24 +2349,35 @@
     });
 
 
+    let _pendPagina = 1;
+    let _pendData = [];
+
     async function abrirPendientes() {
       const pendientes = await window.api.getPendientes({ usuario_id: usuarioActual.id, rol: usuarioActual.rol });
+      _pendData = pendientes;
+      _pendPagina = 1;
+      _renderPendPagina();
+      document.getElementById('modalPendientes').classList.add('mostrar');
+    }
+
+    function _renderPendPagina() {
       const contenedor = document.getElementById('pendientesList');
 
-      if (pendientes.length === 0) {
+      if (_pendData.length === 0) {
         contenedor.innerHTML = '<div style="text-align:center;color:#8a7a6a;padding:20px">No hay cuentas pendientes</div>';
-        document.getElementById('modalPendientes').classList.add('mostrar');
+        document.getElementById('pendientesPaginacion').innerHTML = '';
         return;
       }
 
-      const totalPendiente = pendientes.reduce((s, v) => s + v.saldo_pendiente, 0);
+      const totalPendiente = _pendData.reduce((s, v) => s + v.saldo_pendiente, 0);
+      const { items, pagina, totalPaginas } = paginar(_pendData, _pendPagina);
 
       contenedor.innerHTML = `
         <div style="display:flex;justify-content:space-between;background:#fde0e0;border-radius:10px;padding:12px 16px;margin-bottom:12px;font-size:16px;font-weight:700;color:#b33a3a">
           <span>Total pendiente</span>
           <span>${formatear(totalPendiente)}</span>
         </div>
-        ${pendientes.map(v => {
+        ${items.map(v => {
           const fecha = v.fecha_hora ? v.fecha_hora.replace('T', ' ').slice(0, 16) : '';
           return `
             <div style="padding:8px 0;border-bottom:1px solid #f0e8e0;font-size:13px">
@@ -2295,7 +2418,10 @@
         });
       });
 
-      document.getElementById('modalPendientes').classList.add('mostrar');
+      renderPaginacion('pendientesPaginacion', totalPaginas, pagina, (pg) => {
+        _pendPagina = pg;
+        _renderPendPagina();
+      });
     }
 
     document.getElementById('btnCerrarPendientes').addEventListener('click', () => {
@@ -3167,16 +3293,22 @@
       cargarHistorialDescartes();
     }
 
+    let _descPagina = 1;
+    let _descData = [];
+
     async function cargarHistorialDescartes() {
       const contenedor = document.getElementById('historialDescartesList');
       const resumenContainer = document.getElementById('historialDescartesResumen');
       contenedor.innerHTML = '<div style="text-align:center;color:#8a7a6a;padding:20px">Cargando...</div>';
 
       const descartes = await window.api.getDescartes();
+      _descData = descartes;
+      _descPagina = 1;
 
       if (descartes.length === 0) {
         resumenContainer.innerHTML = '';
         contenedor.innerHTML = '<div style="text-align:center;color:#8a7a6a;padding:20px">No hay descartes registrados</div>';
+        document.getElementById('historialDescartesPaginacion').innerHTML = '';
         return;
       }
 
@@ -3194,7 +3326,20 @@
         </div>
       `;
 
-      contenedor.innerHTML = descartes.map(d => `
+      _renderDescPagina();
+    }
+
+    function _renderDescPagina() {
+      const contenedor = document.getElementById('historialDescartesList');
+      if (_descData.length === 0) {
+        contenedor.innerHTML = '<div style="text-align:center;color:#8a7a6a;padding:20px">No hay descartes registrados</div>';
+        document.getElementById('historialDescartesPaginacion').innerHTML = '';
+        return;
+      }
+
+      const { items, pagina, totalPaginas } = paginar(_descData, _descPagina);
+
+      contenedor.innerHTML = items.map(d => `
         <div style="padding:10px 0;border-bottom:1px solid #e0d6ca;font-size:13px;display:flex;align-items:center;gap:10px">
           <div style="width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:700;background:#fde0e0;color:#b33a3a">
             🗑️
@@ -3208,6 +3353,11 @@
           </div>
         </div>
       `).join('');
+
+      renderPaginacion('historialDescartesPaginacion', totalPaginas, pagina, (pg) => {
+        _descPagina = pg;
+        _renderDescPagina();
+      });
     }
 
     document.getElementById('tabDescartar').addEventListener('click', abrirVistaDescartar);
@@ -3221,12 +3371,18 @@
       await cargarHistorialMovimientos();
     }
 
+    let _movPagina = 1;
+    let _movData = [];
+
     async function cargarHistorialMovimientos() {
       const desde = document.getElementById('movDesde').value;
       const hasta = document.getElementById('movHasta').value;
       const tipo = document.getElementById('movTipo').value;
 
       const data = await window.api.getHistorialMovimientos({ desde, hasta, usuario_id: null, tipo });
+      _movData = data.movimientos;
+      _movPagina = 1;
+
       const contenedor = document.getElementById('historialMovimientosList');
       const resumenContainer = document.getElementById('historialMovimientosResumen');
 
@@ -3245,12 +3401,20 @@
         </div>
       `;
 
-      if (data.movimientos.length === 0) {
+      _renderMovPagina();
+    }
+
+    function _renderMovPagina() {
+      const contenedor = document.getElementById('historialMovimientosList');
+      if (_movData.length === 0) {
         contenedor.innerHTML = '<div style="text-align:center;color:#8a7a6a;padding:20px">No hay movimientos registrados</div>';
+        document.getElementById('historialMovimientosPaginacion').innerHTML = '';
         return;
       }
 
-      contenedor.innerHTML = data.movimientos.map(m => `
+      const { items, pagina, totalPaginas } = paginar(_movData, _movPagina);
+
+      contenedor.innerHTML = items.map(m => `
         <div style="padding:10px 0;border-bottom:1px solid #e0d6ca;font-size:13px;display:flex;align-items:center;gap:10px">
           <div style="width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:700;${m.tipo === 'ingreso' ? 'background:#e4f0e0;color:#2d6a1e' : 'background:#fde0e0;color:#b33a3a'}">
             ${m.tipo === 'ingreso' ? '+' : '-'}
@@ -3264,6 +3428,11 @@
           </div>
         </div>
       `).join('');
+
+      renderPaginacion('historialMovimientosPaginacion', totalPaginas, pagina, (pg) => {
+        _movPagina = pg;
+        _renderMovPagina();
+      });
     }
 
     document.getElementById('btnCerrarHistorialMovimientos').addEventListener('click', () => {
