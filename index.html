@@ -2866,7 +2866,7 @@
       document.getElementById('modalProductos').classList.remove('mostrar');
     });
 
-    function mostrarApp(user) {
+    async function mostrarApp(user) {
       usuarioActual = user;
       document.getElementById('userNameDisplay').textContent = user.username;
       document.getElementById('userRolDisplay').textContent = user.rol === 'admin' ? 'Administrador' : 'Vendedor';
