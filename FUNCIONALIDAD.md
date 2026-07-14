@@ -96,7 +96,8 @@
 
 ### 7. Apertura de caja
 
-- Botón "Abrir Caja" en el header
+- Botón "🔓 Abrir Caja" visible para todos los perfiles
+- Se oculta automáticamente cuando ya hay una caja abierta
 - Input para saldo inicial en efectivo
 - Solo se puede tener una caja abierta por día por usuario
 - No permite ventas si no hay caja abierta
@@ -108,7 +109,8 @@
   - Desglose por método de pago (ventas + cobros)
   - Movimientos de caja (ingresos/egresos)
   - Efectivo contado, retiro, dejado
-- Al confirmar: marca ventas como cerradas
+- Permite cerrar aunque no haya actividades del día
+- Al confirmar: marca ventas como cerradas y vuelve a mostrar botón "Abrir Caja"
 - Historial de cierres accesible para admin
 
 ### 9. Gestión de productos (admin)
@@ -205,5 +207,9 @@
 - **2026-07-04** — Nuevo módulo **Descartar Productos**: carrito de descarte con búsqueda, +/- cantidad, quitar items individuales. Tabla `descartes`. Disponible para todos los perfiles sin caja abierta.
 - **2026-07-04** — **Reporte de ventas (admin)**: filtros por fecha, resumen con totales/promedio/descuentos, desglose por método de pago, top productos vendidos, alerta stock bajo, ventas por día.
 - **2026-07-04** — **Fix cierre de caja**: cuando un usuario no tiene apertura de caja hoy, el cierre ahora muestra datos vacíos en lugar de traer ventas históricas (bug que mostraba saldo MP de días anteriores).
+- **2026-07-13** — **Historial de movimientos de caja (admin)**: modal con filtros por fecha/tipo, resumen de totales, lista detallada. Botón "Ver detalle" en historial de cierres.
+- **2026-07-13** — **Historial de descartes**: pestaña "Historial" en modal de descartes con resumen y lista completa.
+- **2026-07-15** — **Abrir Caja para todos**: botón visible para todos los perfiles (antes era solo admin). Se oculta automáticamente cuando la caja ya está abierta.
+- **2026-07-15** — **Cierre sin actividad**: ahora permite cerrar caja aunque no haya ventas ni movimientos del día.
 - **2026-07-13** — **Historial de movimientos de caja (admin)**: nuevo modal con filtros por fecha y tipo, resumen de totales, lista detallada de movimientos. Botón "Ver detalle" en historial de cierres para ver movimientos individuales por sesión.
 - **2026-07-13** — **Historial de descartes**: pestaña "Historial" dentro del modal de descartes con resumen (total, unidades) y lista completa de descartes registrados.

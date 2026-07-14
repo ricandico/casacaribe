@@ -700,7 +700,7 @@
         <button class="sidebar-btn" data-action="pendientes"><span class="icon">📌</span> Cuentas Pendientes</button>
         <button class="sidebar-btn" data-action="descarte"><span class="icon">🗑️</span> Descartar Productos</button>
         <div class="sidebar-divider"></div>
-        <button class="sidebar-btn admin-only" data-action="abrir-caja"><span class="icon">🔓</span> Abrir Caja</button>
+        <button class="sidebar-btn" data-action="abrir-caja"><span class="icon">🔓</span> Abrir Caja</button>
         <button class="sidebar-btn admin-only" data-action="productos"><span class="icon">🏷️</span> Gestionar Productos</button>
         <button class="sidebar-btn admin-only" data-action="usuarios"><span class="icon">👥</span> Gestionar Usuarios</button>
         <button class="sidebar-btn admin-only" data-action="historial-cierres"><span class="icon">📁</span> Historial de Cierres</button>
@@ -1950,6 +1950,7 @@
       await window.api.abrirCaja({ usuario_id: usuarioActual.id, saldo_inicial: saldo });
       document.getElementById('modalApertura').classList.remove('mostrar');
       mostrarToast('🔓 Caja abierta — saldo inicial: ' + formatear(saldo));
+      await actualizarBotonAbrirCaja();
       } catch (err) {
         mostrarToast('Error: ' + err.message);
         console.error(err);
@@ -1958,10 +1959,6 @@
     document.getElementById('btnConfirmarCierre').addEventListener('click', async () => {
       try {
       const data = await window.api.getCierre({ usuario_id: usuarioActual.id });
-      if (data.cantidad === 0 && data.totalIngresos === 0 && data.totalEgresos === 0) {
-        mostrarToast('Sin actividad para cerrar');
-        return;
-      }
 
       const efectivoContado = parseFloat(document.getElementById('cierreEfectivoContado')?.value) || 0;
       const efectivoRetiro = parseFloat(document.getElementById('cierreEfectivoRetiro')?.value) || 0;
@@ -1979,6 +1976,7 @@
       document.getElementById('modalCierre').classList.remove('mostrar');
       mostrarToast('Cierre confirmado — turno finalizado');
       cargarTodayBar();
+      await actualizarBotonAbrirCaja();
       } catch (err) {
         mostrarToast('Error: ' + err.message);
         console.error(err);
@@ -2886,7 +2884,18 @@
         }
       }
 
+      await actualizarBotonAbrirCaja();
       initApp();
+    }
+
+    async function actualizarBotonAbrirCaja() {
+      try {
+        const apertura = await window.api.getApertura(usuarioActual.id);
+        const btnAbrir = document.querySelector('[data-action="abrir-caja"]');
+        if (btnAbrir) {
+          btnAbrir.style.display = apertura ? 'none' : '';
+        }
+      } catch(e) {}
     }
 
     document.getElementById('btn-login').addEventListener('click', async () => {
