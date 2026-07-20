@@ -1031,7 +1031,7 @@ app.whenReady().then(() => {
       LEFT JOIN detalle_ventas dv ON dv.venta_id = v.id
       WHERE 1=1 ${filtroFecha}
       GROUP BY v.id
-      ORDER BY v.fecha_hora ASC
+      ORDER BY v.fecha_hora DESC
     `).all(...params);
 
     const totalVentas = ventas.reduce((s, v) => s + (v.total_con_descuento || v.total || 0), 0);
