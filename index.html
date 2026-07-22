@@ -3445,7 +3445,11 @@
       const confirmar = await customPrompt(`¿Descartar ${descarteCarrito.length} producto(s)? ${resumen}\n\nEscribí SI para confirmar`);
       if (confirmar !== 'SI') return;
 
+      let exitosos = 0;
       let errores = 0;
+      let erroresMsg = [];
+      const itemsDescartados = [];
+
       for (const item of descarteCarrito) {
         try {
           const result = await window.api.descartarProducto({
@@ -3455,17 +3459,36 @@
             usuario_id: usuarioActual.id,
             usuario_nombre: usuarioActual.username,
           });
-          if (result.error) { errores++; mostrarToast(result.error); }
+          if (result.error) {
+            errores++;
+            erroresMsg.push(`${item.nombre}: ${result.error}`);
+          } else {
+            exitosos++;
+            itemsDescartados.push(item);
+          }
         } catch (err) {
           errores++;
+          erroresMsg.push(`${item.nombre}: Error de conexion`);
         }
       }
 
+      // Remove successful items from cart
+      for (const item of itemsDescartados) {
+        const idx = descarteCarrito.indexOf(item);
+        if (idx !== -1) descarteCarrito.splice(idx, 1);
+      }
+
       if (errores === 0) {
-        mostrarToast(`${descarteCarrito.length} producto(s) descartado(s)`);
+        mostrarToast(`${exitosos} producto(s) descartado(s)`);
         descarteCarrito.length = 0;
         document.getElementById('modalDescarte').classList.remove('mostrar');
         cargarProductos();
+      } else if (exitosos > 0) {
+        mostrarToast(`${exitosos} descartado(s), ${errores} fallaron: ${erroresMsg.join('; ')}`, 'error');
+        renderDescarteCarrito();
+        cargarProductos();
+      } else {
+        mostrarToast(`Descarte fallido: ${erroresMsg.join('; ')}`, 'error');
       }
     });
 
