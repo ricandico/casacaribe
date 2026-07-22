@@ -504,6 +504,7 @@ app.whenReady().then(() => {
     }
 
     const desdeApertura = apertura.hora;
+    const hastaApertura = hoy + ' 23:59:59';
     const saldoInicial = apertura.saldo_inicial;
     const aperturaId = apertura.id;
 
@@ -512,10 +513,10 @@ app.whenReady().then(() => {
              COUNT(dv.id) as items_count
       FROM ventas v
       LEFT JOIN detalle_ventas dv ON dv.venta_id = v.id
-      WHERE v.usuario_id = ? AND v.fecha_hora >= ?
+      WHERE v.usuario_id = ? AND v.fecha_hora >= ? AND v.fecha_hora <= ?
       GROUP BY v.id
       ORDER BY v.id
-    `).all(usuario_id, desdeApertura);
+    `).all(usuario_id, desdeApertura, hastaApertura);
 
     const totalVentas = ventas.reduce((s, v) => {
       const totalFinal = (v.total_con_descuento && v.total_con_descuento > 0) ? v.total_con_descuento : Math.max(0, v.total - (v.descuento || 0));
@@ -528,16 +529,16 @@ app.whenReady().then(() => {
       SELECT p.metodo, COALESCE(SUM(p.monto), 0) as total
       FROM pagos p
       JOIN ventas v ON v.id = p.venta_id
-      WHERE v.usuario_id = ? AND v.fecha_hora >= ?
+      WHERE v.usuario_id = ? AND v.fecha_hora >= ? AND v.fecha_hora <= ?
       GROUP BY p.metodo
-    `).all(usuario_id, desdeApertura).reduce((acc, p) => { acc[p.metodo] = p.total; return acc; }, {});
+    `).all(usuario_id, desdeApertura, hastaApertura).reduce((acc, p) => { acc[p.metodo] = p.total; return acc; }, {});
 
     const porPagoCobros = db.prepare(`
       SELECT c.metodo, COALESCE(SUM(c.monto), 0) as total
       FROM cobros c
-      WHERE c.usuario_id = ? AND c.fecha >= ?
+      WHERE c.usuario_id = ? AND c.fecha >= ? AND c.fecha <= ?
       GROUP BY c.metodo
-    `).all(usuario_id, desdeApertura).reduce((acc, c) => { acc[c.metodo] = c.total; return acc; }, {});
+    `).all(usuario_id, desdeApertura, hastaApertura).reduce((acc, c) => { acc[c.metodo] = c.total; return acc; }, {});
 
     const metodos = new Set([...Object.keys(porPagoPagos), ...Object.keys(porPagoCobros)]);
     const porPago = {};
@@ -548,9 +549,9 @@ app.whenReady().then(() => {
     const movimientos = db.prepare(`
       SELECT id, tipo, monto, concepto, fecha
       FROM movimientos_caja
-      WHERE usuario_id = ? AND fecha >= ?
+      WHERE usuario_id = ? AND fecha >= ? AND fecha <= ?
       ORDER BY id DESC
-    `).all(usuario_id, desdeApertura);
+    `).all(usuario_id, desdeApertura, hastaApertura);
 
     const totalIngresos = movimientos.filter(m => m.tipo === 'ingreso').reduce((s, m) => s + m.monto, 0);
     const totalEgresos = movimientos.filter(m => m.tipo === 'egreso').reduce((s, m) => s + m.monto, 0);
@@ -603,12 +604,13 @@ app.whenReady().then(() => {
       if (c.apertura_id) {
         const apertura = db.prepare('SELECT hora FROM apertura_caja WHERE id = ?').get(c.apertura_id);
         if (apertura) {
+          const hastaCierre = c.fecha + ' 23:59:59';
           movimientos = db.prepare(`
             SELECT id, tipo, monto, concepto, fecha
             FROM movimientos_caja
-            WHERE usuario_id = ? AND fecha >= ?
+            WHERE usuario_id = ? AND fecha >= ? AND fecha <= ?
             ORDER BY id DESC
-          `).all(c.usuario_id || 0, apertura.hora);
+          `).all(c.usuario_id || 0, apertura.hora, hastaCierre);
           totalIngresos = movimientos.filter(m => m.tipo === 'ingreso').reduce((s, m) => s + m.monto, 0);
           totalEgresos = movimientos.filter(m => m.tipo === 'egreso').reduce((s, m) => s + m.monto, 0);
         }

@@ -212,5 +212,6 @@
 - **2026-07-15** — **Abrir Caja para todos**: botón visible para todos los perfiles (antes era solo admin). Se oculta automáticamente cuando la caja ya está abierta.
 - **2026-07-15** — **Cierre sin actividad**: ahora permite cerrar caja aunque no haya ventas ni movimientos del día.
 - **2026-07-21** — **Fix cálculo efectivo en cierre**: el efectivo esperado ahora descuenta correctamente los retiros de caja (antes no los restaba, causando diferencias falsas).
+- **2026-07-21** — **Fix crítico: cierres incluían ventas de otros días**: las queries de cierre y historial filtraban solo por `fecha >= apertura_hora` sin límite superior, incluyendo ventas de días posteriores. Ahora filtran por la fecha exacta del cierre.
 - **2026-07-13** — **Historial de movimientos de caja (admin)**: nuevo modal con filtros por fecha y tipo, resumen de totales, lista detallada de movimientos. Botón "Ver detalle" en historial de cierres para ver movimientos individuales por sesión.
 - **2026-07-13** — **Historial de descartes**: pestaña "Historial" dentro del modal de descartes con resumen (total, unidades) y lista completa de descartes registrados.
