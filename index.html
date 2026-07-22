@@ -1968,7 +1968,7 @@
       const totalTransferencia = parseFloat(document.getElementById('cierreTotalTransferencia')?.value) || 0;
 
       const efectivoVentasCobros = data.porPago['Efectivo'] || 0;
-      const efectivoEsperado = data.saldoInicial + efectivoVentasCobros + data.totalIngresos - data.totalEgresos;
+      const efectivoEsperado = data.saldoInicial + efectivoVentasCobros + data.totalIngresos - data.totalEgresos - efectivoRetiro;
       const diferencia = efectivoContado - efectivoEsperado;
 
       const confirmar = await mostrarConfirmacionCierre(diferencia, data, efectivoContado, efectivoRetiro, efectivoDejado, totalMp, totalTransferencia, efectivoEsperado);
@@ -2397,7 +2397,7 @@
         }
 
         const totalEf = esDetallado ? (porPago['Efectivo']?.total || 0) : (porPago['Efectivo'] || 0);
-        const efectivoEsperado = (c.saldo_inicial || 0) + totalEf + (c.totalIngresos || 0) - (c.totalEgresos || 0);
+        const efectivoEsperado = (c.saldo_inicial || 0) + totalEf + (c.totalIngresos || 0) - (c.totalEgresos || 0) - (c.efectivo_retiro || 0);
         const difEfectivo = c.efectivo_contado - efectivoEsperado;
         let diffCls, diffTxt;
         if (difEfectivo === 0) {
