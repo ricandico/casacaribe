@@ -500,7 +500,7 @@ app.whenReady().then(() => {
     const apertura = db.prepare('SELECT id, saldo_inicial, hora FROM apertura_caja WHERE usuario_id = ? AND fecha = ? ORDER BY id DESC LIMIT 1').get(usuario_id, hoy);
 
     if (!apertura) {
-      return { ventas: [], total: 0, totalDescuentos: 0, cantidad: 0, porPago: {}, usuario: '', movimientos: [], totalIngresos: 0, totalEgresos: 0, porPagoPagos: {}, porPagoCobros: {}, yaCerrado: false, saldoInicial: 0, aperturaId: null };
+      return { ventas: [], total: 0, totalDescuentos: 0, cantidad: 0, porPago: {}, usuario: '', movimientos: [], totalIngresos: 0, totalEgresos: 0, porPagoPagos: {}, porPagoCobros: {}, porPagoVentas: {}, diferencias: {}, yaCerrado: false, saldoInicial: 0, aperturaId: null };
     }
 
     const desdeApertura = apertura.hora;
@@ -509,7 +509,7 @@ app.whenReady().then(() => {
     const aperturaId = apertura.id;
 
     const ventas = db.prepare(`
-      SELECT v.id, v.fecha_hora, v.total, v.notas, v.descuento, v.total_con_descuento,
+      SELECT v.id, v.fecha_hora, v.total, v.notas, v.descuento, v.total_con_descuento, v.metodo_pago,
              COUNT(dv.id) as items_count
       FROM ventas v
       LEFT JOIN detalle_ventas dv ON dv.venta_id = v.id
@@ -546,6 +546,34 @@ app.whenReady().then(() => {
       porPago[m] = (porPagoPagos[m] || 0) + (porPagoCobros[m] || 0);
     }
 
+    // Calcular ventas por metodo (parseando metodo_pago de cada venta)
+    const porPagoVentas = {};
+    for (const v of ventas) {
+      const totalFinal = (v.total_con_descuento && v.total_con_descuento > 0) ? v.total_con_descuento : Math.max(0, v.total - (v.descuento || 0));
+      if (v.metodo_pago && v.metodo_pago.includes(':')) {
+        const partes = v.metodo_pago.split(';').map(p => p.trim());
+        for (const parte of partes) {
+          const match = parte.match(/^(.+?):\s*\$?([\d.]+)$/);
+          if (match) {
+            const metodo = match[1].trim();
+            const monto = parseFloat(match[2]);
+            porPagoVentas[metodo] = (porPagoVentas[metodo] || 0) + monto;
+          }
+        }
+      } else if (v.metodo_pago) {
+        porPagoVentas[v.metodo_pago] = (porPagoVentas[v.metodo_pago] || 0) + totalFinal;
+      }
+    }
+
+    // Calcular diferencias: cobros reales - lo que el sistema dice que se vendio
+    const diferencias = {};
+    const todosMetodos = new Set([...Object.keys(porPagoVentas), ...Object.keys(porPago)]);
+    for (const m of todosMetodos) {
+      const cobros = porPago[m] || 0;
+      const ventasEsperado = porPagoVentas[m] || 0;
+      diferencias[m] = cobros - ventasEsperado;
+    }
+
     const movimientos = db.prepare(`
       SELECT id, tipo, monto, concepto, fecha
       FROM movimientos_caja
@@ -560,10 +588,10 @@ app.whenReady().then(() => {
 
     const yaCerrado = aperturaId ? !!db.prepare('SELECT id FROM cierres WHERE apertura_id = ?').get(aperturaId) : false;
 
-    return { ventas, total: totalVentas, totalDescuentos, cantidad: ventas.length, porPago, usuario: usuario?.username || '', movimientos, totalIngresos, totalEgresos, porPagoPagos, porPagoCobros, yaCerrado, saldoInicial, aperturaId };
+    return { ventas, total: totalVentas, totalDescuentos, cantidad: ventas.length, porPago, usuario: usuario?.username || '', movimientos, totalIngresos, totalEgresos, porPagoPagos, porPagoCobros, porPagoVentas, diferencias, yaCerrado, saldoInicial, aperturaId };
   });
 
-  ipcMain.handle('confirmar-cierre', (_, { usuario_id, total, cantidad, por_pago, por_pago_ventas, por_pago_cobros, efectivo_contado, efectivo_retiro, efectivo_dejado, total_mp, total_transferencia, saldo_inicial, apertura_id }) => {
+  ipcMain.handle('confirmar-cierre', (_, { usuario_id, total, cantidad, por_pago, por_pago_ventas, por_pago_cobros, diferencias, efectivo_contado, efectivo_retiro, efectivo_dejado, total_mp, total_transferencia, saldo_inicial, apertura_id }) => {
     if (!apertura_id) return { success: false, error: 'No hay caja abierta para cerrar.' };
     const existeCierre = db.prepare('SELECT id FROM cierres WHERE apertura_id = ?').get(apertura_id);
     if (existeCierre) return { success: false, error: 'Esta jornada ya fue cerrada.' };
@@ -574,8 +602,8 @@ app.whenReady().then(() => {
     for (const m of metodos) {
       detallado[m] = {
         ventas: por_pago_ventas[m] || 0,
-        cobros: por_pago_cobros[m] || 0,
-        total: (por_pago_ventas[m] || 0) + (por_pago_cobros[m] || 0)
+        cobros: (por_pago_cobros[m] || 0) + (((por_pago || {})[m] || 0) - ((por_pago_ventas || {})[m] || 0)),
+        diferencia: diferencias ? (diferencias[m] || 0) : 0
       };
     }
     db.prepare(`

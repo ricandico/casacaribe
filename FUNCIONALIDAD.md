@@ -214,5 +214,6 @@
 - **2026-07-21** — **Fix cálculo efectivo en cierre**: el efectivo esperado ahora descuenta correctamente los retiros de caja (antes no los restaba, causando diferencias falsas).
 - **2026-07-21** — **Fix crítico: cierres incluían ventas de otros días**: las queries de cierre y historial filtraban solo por `fecha >= apertura_hora` sin límite superior, incluyendo ventas de días posteriores. Ahora filtran por la fecha exacta del cierre.
 - **2026-07-21** — **Fix descarte parcial**: si falla uno de varios productos al descartar, ahora se limpian los exitosos del carrito y se muestra resumen de éxitos/fallos.
+- **2026-07-21** — **Diferencias por método de pago en cierre**: el cierre ahora guarda y muestra las diferencias entre lo que el sistema dice que se vendió por método vs lo que realmente se cobró. Útil para detectar productos no registrados o descuentos no reflejados.
 - **2026-07-13** — **Historial de movimientos de caja (admin)**: nuevo modal con filtros por fecha y tipo, resumen de totales, lista detallada de movimientos. Botón "Ver detalle" en historial de cierres para ver movimientos individuales por sesión.
 - **2026-07-13** — **Historial de descartes**: pestaña "Historial" dentro del modal de descartes con resumen (total, unidades) y lista completa de descartes registrados.
