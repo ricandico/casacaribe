@@ -707,6 +707,8 @@
         <button class="sidebar-btn admin-only" data-action="historial-movimientos"><span class="icon">💸</span> Historial de Movimientos</button>
         <button class="sidebar-btn admin-only" data-action="contabilidad"><span class="icon">📊</span> Contabilidad</button>
         <div class="sidebar-divider"></div>
+        <button class="sidebar-btn" data-action="backup"><span class="icon">☁️</span> A la nube</button>
+        <div class="sidebar-divider"></div>
         <button class="sidebar-btn" data-action="logout"><span class="icon">🚪</span> Cerrar Sesión</button>
       </div>
     </div>
@@ -1218,6 +1220,36 @@
     </div>
   </div>
 
+  <div class="modal-overlay" id="modalBackup">
+    <div class="modal" style="width:480px;max-width:95vw;box-sizing:border-box">
+      <h2 style="margin-top:0;color:#5c3a1e;font-size:20px">☁️ A la nube</h2>
+      <div id="backupStatus" style="display:none;padding:10px 14px;border-radius:8px;background:#f5f0eb;margin-bottom:14px;font-size:13px"></div>
+      <div id="backupConfigForm">
+        <div style="margin-bottom:12px">
+          <label style="font-size:12px;font-weight:600;color:#5c3a1e;display:block;margin-bottom:4px">Owner (usuario/org de GitHub)</label>
+          <input id="backupOwner" type="text" placeholder="ej: ricandico" style="width:100%;padding:10px;border:2px solid #d4c4b3;border-radius:8px;font-size:14px;box-sizing:border-box">
+        </div>
+        <div style="margin-bottom:12px">
+          <label style="font-size:12px;font-weight:600;color:#5c3a1e;display:block;margin-bottom:4px">Repo (nombre del repositorio)</label>
+          <input id="backupRepo" type="text" placeholder="ej: casacaribe" style="width:100%;padding:10px;border:2px solid #d4c4b3;border-radius:8px;font-size:14px;box-sizing:border-box">
+        </div>
+        <div style="margin-bottom:14px">
+          <label style="font-size:12px;font-weight:600;color:#5c3a1e;display:block;margin-bottom:4px">GitHub Token (PAT con permiso repo)</label>
+          <input id="backupToken" type="password" placeholder="ghp_..." style="width:100%;padding:10px;border:2px solid #d4c4b3;border-radius:8px;font-size:14px;box-sizing:border-box">
+        </div>
+        <div style="display:flex;gap:10px;margin-bottom:14px;flex-wrap:wrap">
+          <button id="btnGuardarBackupConfig" style="background:#5c3a1e;color:#fff;border:none;padding:10px 18px;border-radius:8px;font-weight:600;cursor:pointer;font-size:13px">💾 Guardar Config</button>
+          <button id="btnProbarBackup" style="background:#1a6a9e;color:#fff;border:none;padding:10px 18px;border-radius:8px;font-weight:600;cursor:pointer;font-size:13px">🔍 Probar Conexión</button>
+          <button id="btnEjecutarBackup" style="background:#2d6a1e;color:#fff;border:none;padding:10px 18px;border-radius:8px;font-weight:600;cursor:pointer;font-size:13px">☁️ Backup ahora</button>
+        </div>
+      </div>
+      <div id="backupResult" style="display:none;padding:10px 14px;border-radius:8px;background:#f5f0eb;margin-bottom:14px;font-size:13px"></div>
+      <div class="modal-botones" style="display:flex;justify-content:flex-end;gap:10px">
+        <button class="btn-cancel" id="btnCancelarBackup" style="background:#e8ddd2;color:#5c3a1e;border:none;padding:10px 20px;border-radius:8px;font-weight:600;cursor:pointer">Cerrar</button>
+      </div>
+    </div>
+  </div>
+
   <div class="toast" id="toast"></div>
 
     </div>
@@ -1241,6 +1273,7 @@
       'historial-cierres': () => { abrirHistorialCierres(); },
       'historial-movimientos': () => { abrirHistorialMovimientos(); },
       'contabilidad': () => { abrirContabilidad(); },
+      'backup': () => { abrirBackup(); },
       'logout': () => {
         usuarioActual = null;
         document.getElementById('appContainer').classList.remove('mostrar');
@@ -1840,8 +1873,10 @@
       const contenedor = document.getElementById('cierreContent');
       const btnConfirmar = document.getElementById('btnConfirmarCierre');
 
-      const mpEsperado = data.porPago['Mercado Pago'] || 0;
-      const transferenciaEsperado = data.porPago['Transferencia'] || 0;
+      const mpEntry = data.porPago['Mercado Pago'] || 0;
+      const mpEsperado = (typeof mpEntry === 'object' && mpEntry !== null) ? (mpEntry.ventas || 0) : mpEntry;
+      const transEntry = data.porPago['Transferencia'] || 0;
+      const transferenciaEsperado = (typeof transEntry === 'object' && transEntry !== null) ? (transEntry.ventas || 0) : transEntry;
 
       let html = `
         <div style="text-align:center;margin-bottom:16px;padding-bottom:16px;border-bottom:1px solid #e0d6ca">
@@ -1948,7 +1983,8 @@
       try {
       const saldo = parseFloat(document.getElementById('aperturaSaldo').value) || 0;
       if (saldo < 0) { mostrarToast('El saldo no puede ser negativo'); return; }
-      await window.api.abrirCaja({ usuario_id: usuarioActual.id, saldo_inicial: saldo });
+      const result = await window.api.abrirCaja({ usuario_id: usuarioActual.id, saldo_inicial: saldo });
+      if (!result.success) { mostrarToast(result.error); return; }
       document.getElementById('modalApertura').classList.remove('mostrar');
       mostrarToast('🔓 Caja abierta — saldo inicial: ' + formatear(saldo));
       await actualizarBotonAbrirCaja();
@@ -1967,7 +2003,8 @@
       const totalMp = parseFloat(document.getElementById('cierreTotalMp')?.value) || 0;
       const totalTransferencia = parseFloat(document.getElementById('cierreTotalTransferencia')?.value) || 0;
 
-      const efectivoVentasCobros = data.porPago['Efectivo'] || 0;
+      const efectivoEntry = data.porPago['Efectivo'] || 0;
+      const efectivoVentasCobros = (typeof efectivoEntry === 'object' && efectivoEntry !== null) ? (efectivoEntry.ventas || 0) : efectivoEntry;
       const efectivoEsperado = data.saldoInicial + efectivoVentasCobros + data.totalIngresos - data.totalEgresos - efectivoRetiro;
       const diferencia = efectivoContado - efectivoEsperado;
 
@@ -2425,7 +2462,7 @@
           ).join('');
         }
 
-        const totalEf = esDetallado ? (porPago['Efectivo']?.total || 0) : (porPago['Efectivo'] || 0);
+        const totalEf = esDetallado ? (porPago['Efectivo']?.ventas || porPago['Efectivo']?.cobros || 0) : (porPago['Efectivo'] || 0);
         const efectivoEsperado = (c.saldo_inicial || 0) + totalEf + (c.totalIngresos || 0) - (c.totalEgresos || 0) - (c.efectivo_retiro || 0);
         const difEfectivo = c.efectivo_contado - efectivoEsperado;
         let diffCls, diffTxt;
@@ -2857,8 +2894,10 @@
           item.codigo = document.querySelector(`.prod-codigo[data-id="${id}"]`)?.value.trim() || item.codigo;
           item.nombre = el.value.trim() || item.nombre;
           item.categoria = document.querySelector(`.prod-categoria[data-id="${id}"]`)?.value || item.categoria;
-          item.precio_venta = parseFloat(document.querySelector(`.prod-precio[data-id="${id}"]`)?.value) || item.precio_venta;
-          item.stock_actual = parseInt(document.querySelector(`.prod-stock[data-id="${id}"]`)?.value) || item.stock_actual;
+          const precioVal = parseFloat(document.querySelector(`.prod-precio[data-id="${id}"]`)?.value);
+          item.precio_venta = isNaN(precioVal) ? item.precio_venta : precioVal;
+          const stockVal = parseInt(document.querySelector(`.prod-stock[data-id="${id}"]`)?.value);
+          item.stock_actual = isNaN(stockVal) ? item.stock_actual : stockVal;
         }
       });
     }
@@ -2875,6 +2914,7 @@
       cargarProductos();
     });
     document.getElementById('buscadorProductos').addEventListener('input', () => {
+      _syncProdInputs();
       _prodPagina = 1;
       _renderProdPagina();
     });
@@ -4030,6 +4070,88 @@
       }
     });
     _observerEditarGasto.observe(document.getElementById('modalEditarGasto'), { attributes: true, attributeFilter: ['class'] });
+
+    // === BACKUP A GITHUB ===
+    async function abrirBackup() {
+      const config = await window.api.getBackupConfig();
+      const form = document.getElementById('backupConfigForm');
+      const status = document.getElementById('backupStatus');
+      const result = document.getElementById('backupResult');
+
+      if (config.configured) {
+        document.getElementById('backupOwner').value = config.owner || '';
+        document.getElementById('backupRepo').value = config.repo || '';
+        document.getElementById('backupToken').value = '';
+        document.getElementById('backupToken').placeholder = config.tokenMasked || 'Ya configurado';
+        status.innerHTML = `<div style="color:#2d6a1e;font-weight:500">✅ Configurado: ${config.owner}/${config.repo} — Token: ${config.tokenMasked}</div>`;
+        status.style.display = 'block';
+      } else {
+        status.innerHTML = '<div style="color:#8a6a00;font-weight:500">⚠️ Aún no configurado. Completá los datos y guardá.</div>';
+        status.style.display = 'block';
+      }
+      result.innerHTML = '';
+      result.style.display = 'none';
+      document.getElementById('modalBackup').classList.add('mostrar');
+    }
+
+    document.getElementById('btnCancelarBackup').addEventListener('click', () => {
+      document.getElementById('modalBackup').classList.remove('mostrar');
+    });
+
+    document.getElementById('btnGuardarBackupConfig').addEventListener('click', async () => {
+      const owner = document.getElementById('backupOwner').value.trim();
+      const repo = document.getElementById('backupRepo').value.trim();
+      const token = document.getElementById('backupToken').value.trim();
+
+      if (!owner || !repo) return mostrarNotificacion('Completá owner y repo', 'error');
+      if (!token) return mostrarNotificacion('Ingresá el token de GitHub', 'error');
+
+      await window.api.saveBackupConfig({ token, owner, repo });
+      mostrarNotificacion('Configuración de backup guardada', 'exito');
+      sonidoExito();
+      abrirBackup();
+    });
+
+    document.getElementById('btnProbarBackup').addEventListener('click', async () => {
+      const owner = document.getElementById('backupOwner').value.trim();
+      const repo = document.getElementById('backupRepo').value.trim();
+      const token = document.getElementById('backupToken').value.trim();
+      const result = document.getElementById('backupResult');
+
+      if (!owner || !repo || !token) return mostrarNotificacion('Completá todos los campos', 'error');
+
+      result.innerHTML = '<div style="color:#8a7a6a">Probando conexión...</div>';
+      result.style.display = 'block';
+
+      const res = await window.api.testBackupConnection({ token, owner, repo });
+      if (res.success) {
+        result.innerHTML = `<div style="color:#2d6a1e;font-weight:500">✅ ${res.message}</div>`;
+      } else {
+        result.innerHTML = `<div style="color:#b33a3a;font-weight:500">❌ ${res.message}</div>`;
+      }
+    });
+
+    document.getElementById('btnEjecutarBackup').addEventListener('click', async () => {
+      const result = document.getElementById('backupResult');
+      const btn = document.getElementById('btnEjecutarBackup');
+      btn.disabled = true;
+      btn.textContent = '⏳ Subiendo...';
+      result.innerHTML = '<div style="color:#8a7a6a">Subiendo base de datos a GitHub...</div>';
+      result.style.display = 'block';
+
+      const res = await window.api.backupDatabase();
+      btn.disabled = false;
+      btn.textContent = '☁️ Backup ahora';
+
+      if (res.success) {
+        result.innerHTML = `<div style="color:#2d6a1e;font-weight:500">✅ ${res.message}</div>`;
+        mostrarNotificacion('Backup completado', 'exito');
+        sonidoExito();
+      } else {
+        result.innerHTML = `<div style="color:#b33a3a;font-weight:500">❌ ${res.message}</div>`;
+        mostrarNotificacion('Error en backup', 'error');
+      }
+    });
   </script>
 </body>
 </html>

@@ -591,7 +591,111 @@ app.whenReady().then(() => {
     return { ventas, total: totalVentas, totalDescuentos, cantidad: ventas.length, porPago, usuario: usuario?.username || '', movimientos, totalIngresos, totalEgresos, porPagoPagos, porPagoCobros, porPagoVentas, diferencias, yaCerrado, saldoInicial, aperturaId };
   });
 
-  ipcMain.handle('confirmar-cierre', (_, { usuario_id, total, cantidad, por_pago, por_pago_ventas, por_pago_cobros, diferencias, efectivo_contado, efectivo_retiro, efectivo_dejado, total_mp, total_transferencia, saldo_inicial, apertura_id }) => {
+  // === BACKUP A GITHUB ===
+  function getBackupConfigPath() {
+    return path.join(app.getPath('userData'), 'backup-config.json');
+  }
+
+  function getBackupConfig() {
+    const configPath = getBackupConfigPath();
+    if (fs.existsSync(configPath)) {
+      return JSON.parse(fs.readFileSync(configPath, 'utf-8'));
+    }
+    return null;
+  }
+
+  function saveBackupConfig(config) {
+    fs.writeFileSync(getBackupConfigPath(), JSON.stringify(config, null, 2));
+  }
+
+  async function ejecutarBackupAGitHub(config) {
+    const dbPath = getDbPath();
+    const dbBuffer = fs.readFileSync(dbPath);
+    const dbBase64 = dbBuffer.toString('base64');
+
+    const filename = 'panaderia.db';
+    const apiUrl = `https://api.github.com/repos/${config.owner}/${config.repo}/contents/${filename}`;
+
+    let sha = null;
+    try {
+      const getRes = await fetch(apiUrl, {
+        headers: { 'Authorization': `Bearer ${config.token}`, 'Accept': 'application/vnd.github.v3+json' }
+      });
+      if (getRes.ok) {
+        const data = await getRes.json();
+        sha = data.sha;
+      }
+    } catch (e) { /* archivo no existe aún */ }
+
+    const date = new Date().toISOString().slice(0, 10);
+    const body = {
+      message: `Backup panaderia.db — ${date}`,
+      content: dbBase64,
+      committer: { name: 'Casa Caribe POS', email: 'backup@casacaribe.app' }
+    };
+    if (sha) body.sha = sha;
+
+    const putRes = await fetch(apiUrl, {
+      method: 'PUT',
+      headers: {
+        'Authorization': `Bearer ${config.token}`,
+        'Accept': 'application/vnd.github.v3+json',
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(body)
+    });
+
+    if (!putRes.ok) {
+      const err = await putRes.text();
+      throw new Error(`GitHub API error ${putRes.status}: ${err}`);
+    }
+
+    return { success: true, message: 'Backup subido correctamente' };
+  }
+
+  ipcMain.handle('save-backup-config', (_, { token, owner, repo }) => {
+    saveBackupConfig({ token, owner, repo });
+    return { success: true };
+  });
+
+  ipcMain.handle('get-backup-config', () => {
+    const config = getBackupConfig();
+    if (!config) return { configured: false };
+    return {
+      configured: true,
+      owner: config.owner,
+      repo: config.repo,
+      tokenMasked: config.token ? config.token.slice(0, 6) + '****' + config.token.slice(-4) : ''
+    };
+  });
+
+  ipcMain.handle('test-backup-connection', async (_, { token, owner, repo }) => {
+    try {
+      const res = await fetch(`https://api.github.com/repos/${owner}/${repo}`, {
+        headers: { 'Authorization': `Bearer ${token}`, 'Accept': 'application/vnd.github.v3+json' }
+      });
+      if (res.ok) {
+        return { success: true, message: `Conexión exitosa con ${owner}/${repo}` };
+      }
+      const err = await res.text();
+      return { success: false, message: `Error ${res.status}: ${err}` };
+    } catch (e) {
+      return { success: false, message: 'Error de conexión: ' + e.message };
+    }
+  });
+
+  ipcMain.handle('backup-database', async () => {
+    const config = getBackupConfig();
+    if (!config || !config.token) return { success: false, message: 'No hay configuración de backup. Configuralo primero.' };
+    try {
+      const result = await ejecutarBackupAGitHub(config);
+      return result;
+    } catch (e) {
+      return { success: false, message: e.message };
+    }
+  });
+
+  ipcMain.handle('confirmar-cierre', async (_, { usuario_id, total, cantidad, por_pago, por_pago_ventas, por_pago_cobros, diferencias, efectivo_contado, efectivo_retiro, efectivo_dejado, total_mp, total_transferencia, saldo_inicial, apertura_id }) => {
     if (!apertura_id) return { success: false, error: 'No hay caja abierta para cerrar.' };
     const existeCierre = db.prepare('SELECT id FROM cierres WHERE apertura_id = ?').get(apertura_id);
     if (existeCierre) return { success: false, error: 'Esta jornada ya fue cerrada.' };
@@ -611,7 +715,17 @@ app.whenReady().then(() => {
       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `).run(usuario_id, hoy, total, cantidad, JSON.stringify(detallado), efectivo_contado || 0, efectivo_retiro || 0, efectivo_dejado || 0, total_mp || 0, total_transferencia || 0, saldo_inicial || 0, apertura_id || null);
 
-    return { success: true };
+    let backupStatus = null;
+    try {
+      const config = getBackupConfig();
+      if (config && config.token && config.owner && config.repo) {
+        backupStatus = await ejecutarBackupAGitHub(config);
+      }
+    } catch (e) {
+      backupStatus = { success: false, message: e.message };
+    }
+
+    return { success: true, backup: backupStatus };
   });
 
   ipcMain.handle('get-historial-cierres', () => {
@@ -659,7 +773,7 @@ app.whenReady().then(() => {
     const yaCerrado = !!db.prepare('SELECT id FROM cierres WHERE apertura_id = ?').get(apertura.id);
 
     const res = db.prepare(`
-      SELECT COUNT(*) as cantidad, COALESCE(SUM(total), 0) as total,
+      SELECT COUNT(*) as cantidad, COALESCE(SUM(CASE WHEN total_con_descuento > 0 THEN total_con_descuento ELSE total END), 0) as total,
              COALESCE(SUM(saldo_pendiente), 0) as saldo_pendiente
       FROM ventas
       WHERE usuario_id = ? AND fecha_hora >= ?
@@ -986,17 +1100,33 @@ app.whenReady().then(() => {
   });
 
   ipcMain.handle('abrir-caja', (_, { usuario_id, saldo_inicial }) => {
+    // Verificar si el usuario tiene alguna apertura sin cerrar
+    const aperturaAbierta = db.prepare(`
+      SELECT a.id, a.fecha, a.hora
+      FROM apertura_caja a
+      WHERE a.usuario_id = ? AND a.cerrado = 0
+      AND NOT EXISTS (SELECT 1 FROM cierres c WHERE c.apertura_id = a.id)
+      ORDER BY a.id DESC LIMIT 1
+    `).get(usuario_id);
+    if (aperturaAbierta) {
+      return { success: false, error: `Tenés una caja abierta desde el ${aperturaAbierta.fecha}. Cerrala antes de abrir una nueva.` };
+    }
+
     const hoy = new Date().toISOString().slice(0, 10);
     db.prepare('INSERT INTO apertura_caja (usuario_id, fecha, saldo_inicial) VALUES (?, ?, ?)').run(usuario_id, hoy, saldo_inicial);
     return { success: true };
   });
 
   ipcMain.handle('get-apertura', (_, usuario_id) => {
-    const hoy = new Date().toISOString().slice(0, 10);
-    const apertura = db.prepare('SELECT id, saldo_inicial, hora FROM apertura_caja WHERE usuario_id = ? AND fecha = ? ORDER BY id DESC LIMIT 1').get(usuario_id, hoy);
+    // Buscar apertura abierta sin cierre (cualquier fecha)
+    const apertura = db.prepare(`
+      SELECT a.id, a.saldo_inicial, a.hora, a.fecha
+      FROM apertura_caja a
+      WHERE a.usuario_id = ? AND a.cerrado = 0
+      AND NOT EXISTS (SELECT 1 FROM cierres c WHERE c.apertura_id = a.id)
+      ORDER BY a.id DESC LIMIT 1
+    `).get(usuario_id);
     if (!apertura) return null;
-    const tieneCierre = db.prepare('SELECT id FROM cierres WHERE apertura_id = ?').get(apertura.id);
-    if (tieneCierre) return null;
     return apertura;
   });
 

@@ -9,6 +9,7 @@ const inicializarTablas = db.transaction(() => {
     db.prepare(`
         CREATE TABLE IF NOT EXISTS productos (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
+            codigo TEXT DEFAULT '',
             categoria TEXT NOT NULL,
             nombre TEXT NOT NULL,
             variante TEXT DEFAULT 'Estándar',

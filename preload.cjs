@@ -49,4 +49,9 @@ contextBridge.exposeInMainWorld('api', {
   updateGasto: (data) => ipcRenderer.invoke('update-gasto', data),
   deleteGasto: (id) => ipcRenderer.invoke('delete-gasto', id),
   getResumenContabilidad: () => ipcRenderer.invoke('get-resumen-contabilidad'),
+  // Backup
+  backupDatabase: () => ipcRenderer.invoke('backup-database'),
+  saveBackupConfig: (data) => ipcRenderer.invoke('save-backup-config', data),
+  getBackupConfig: () => ipcRenderer.invoke('get-backup-config'),
+  testBackupConnection: (data) => ipcRenderer.invoke('test-backup-connection', data),
 });
