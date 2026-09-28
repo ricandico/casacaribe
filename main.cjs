@@ -207,6 +207,15 @@ app.whenReady().then(() => {
     if (!colCierres.find(c => c.name === 'saldo_inicial')) {
       db.prepare("ALTER TABLE cierres ADD COLUMN saldo_inicial REAL DEFAULT 0").run();
     }
+    if (!colCierres.find(c => c.name === 'total_ingresos')) {
+      db.prepare("ALTER TABLE cierres ADD COLUMN total_ingresos REAL DEFAULT 0").run();
+    }
+    if (!colCierres.find(c => c.name === 'total_egresos')) {
+      db.prepare("ALTER TABLE cierres ADD COLUMN total_egresos REAL DEFAULT 0").run();
+    }
+    if (!colCierres.find(c => c.name === 'efectivo_ventas')) {
+      db.prepare("ALTER TABLE cierres ADD COLUMN efectivo_ventas REAL").run();
+    }
     if (!colCierres.find(c => c.name === 'apertura_id')) {
       db.prepare("ALTER TABLE cierres ADD COLUMN apertura_id INTEGER").run();
       const oldCierres = db.prepare('SELECT id, usuario_id, fecha, hora_cierre FROM cierres WHERE apertura_id IS NULL').all();
@@ -695,25 +704,29 @@ app.whenReady().then(() => {
     }
   });
 
-  ipcMain.handle('confirmar-cierre', async (_, { usuario_id, total, cantidad, por_pago, por_pago_ventas, por_pago_cobros, diferencias, efectivo_contado, efectivo_retiro, efectivo_dejado, total_mp, total_transferencia, saldo_inicial, apertura_id }) => {
+  ipcMain.handle('confirmar-cierre', async (_, { usuario_id, total, cantidad, por_pago, por_pago_ventas, por_pago_cobros, diferencias, efectivo_contado, efectivo_retiro, efectivo_dejado, total_mp, total_transferencia, saldo_inicial, apertura_id, total_ingresos, total_egresos, efectivo_ventas }) => {
     if (!apertura_id) return { success: false, error: 'No hay caja abierta para cerrar.' };
     const existeCierre = db.prepare('SELECT id FROM cierres WHERE apertura_id = ?').get(apertura_id);
     if (existeCierre) return { success: false, error: 'Esta jornada ya fue cerrada.' };
 
     const hoy = new Date().toISOString().slice(0, 10);
+    const porPagoCobrosReal = por_pago_cobros || {};
     const detallado = {};
-    const metodos = new Set([...Object.keys(por_pago_ventas || {}), ...Object.keys(por_pago_cobros || {})]);
+    const metodos = new Set([...Object.keys(por_pago_ventas || {}), ...Object.keys(porPagoCobrosReal)]);
     for (const m of metodos) {
       detallado[m] = {
         ventas: por_pago_ventas[m] || 0,
-        cobros: (por_pago_cobros[m] || 0) + (((por_pago || {})[m] || 0) - ((por_pago_ventas || {})[m] || 0)),
+        cobros: porPagoCobrosReal[m] || 0,
         diferencia: diferencias ? (diferencias[m] || 0) : 0
       };
     }
+    const efectivoVentasGuardado = (efectivo_ventas !== undefined && efectivo_ventas !== null)
+      ? efectivo_ventas
+      : (porPagoCobrosReal['Efectivo'] || (por_pago || {})['Efectivo'] || 0);
     db.prepare(`
-      INSERT INTO cierres (usuario_id, fecha, total, cantidad, por_pago, efectivo_contado, efectivo_retiro, efectivo_dejado, total_mp, total_transferencia, saldo_inicial, apertura_id)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-    `).run(usuario_id, hoy, total, cantidad, JSON.stringify(detallado), efectivo_contado || 0, efectivo_retiro || 0, efectivo_dejado || 0, total_mp || 0, total_transferencia || 0, saldo_inicial || 0, apertura_id || null);
+      INSERT INTO cierres (usuario_id, fecha, total, cantidad, por_pago, efectivo_contado, efectivo_retiro, efectivo_dejado, total_mp, total_transferencia, saldo_inicial, total_ingresos, total_egresos, efectivo_ventas, apertura_id)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `).run(usuario_id, hoy, total, cantidad, JSON.stringify(detallado), efectivo_contado || 0, efectivo_retiro || 0, efectivo_dejado || 0, total_mp || 0, total_transferencia || 0, saldo_inicial || 0, total_ingresos || 0, total_egresos || 0, efectivoVentasGuardado, apertura_id || null);
 
     let backupStatus = null;
     try {
@@ -733,6 +746,7 @@ app.whenReady().then(() => {
       SELECT c.id, c.usuario_id, c.fecha, c.hora_cierre, c.total, c.cantidad, c.por_pago,
              c.efectivo_contado, c.efectivo_retiro, c.efectivo_dejado,
              c.total_mp, c.total_transferencia, c.saldo_inicial,
+             c.total_ingresos, c.total_egresos, c.efectivo_ventas,
              c.apertura_id, u.username
       FROM cierres c
       JOIN usuarios u ON u.id = c.usuario_id

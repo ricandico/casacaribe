@@ -745,6 +745,11 @@
         <div class="carrito-vacio">Agregá productos tocándolos</div>
       </div>
       <div class="footer-carrito">
+        <div style="display:flex;align-items:center;gap:6px;padding:6px 12px;background:#faf7f4;border-radius:8px;margin-bottom:6px">
+          <span style="font-size:12px;color:#8a7a6a;white-space:nowrap">2da unidad:</span>
+          <input id="descuentoSegundaUnidad" type="number" min="0" max="100" value="0" style="width:42px;padding:3px 4px;border:1px solid #d4c4b3;border-radius:6px;font-size:12px;text-align:center;background:#fff">
+          <span style="font-size:12px;color:#8a7a6a">%</span>
+        </div>
         <div class="total-final">
           <span>Total</span>
           <span id="totalFinal">Bs. 0,00</span>
@@ -777,8 +782,11 @@
         </div>
         <div style="display:flex;flex-direction:column;gap:4px">
           <label style="font-size:14px;font-weight:600;color:#5c3a1e">🏷️ Descuento</label>
-          <div style="font-size:11px;color:#8a7a6a;margin-bottom:2px">Ingresa el monto a descontar del total en caso que aplique</div>
-          <input class="pago-input" id="pagoDescuento" type="number" min="0" step="any" placeholder="Ingresa el monto" style="width:100%;padding:16px;border:2px solid #e8ddd2;border-radius:10px;font-size:24px;font-weight:700;background:#faf7f4">
+          <div style="font-size:11px;color:#8a7a6a;margin-bottom:2px">Ingresa el monto o usá el botón % para calcularlo</div>
+          <div style="display:flex;gap:6px;align-items:stretch">
+            <input class="pago-input" id="pagoDescuento" type="number" min="0" step="any" placeholder="Ingresa el monto" style="flex:1;padding:16px;border:2px solid #e8ddd2;border-radius:10px;font-size:24px;font-weight:700;background:#faf7f4">
+            <button id="btnDescuentoPorcentaje" style="width:52px;border:2px solid #e8ddd2;border-radius:10px;background:#faf7f4;font-size:18px;font-weight:700;color:#8a6a00;cursor:pointer" title="Aplicar descuento por porcentaje">%</button>
+          </div>
         </div>
       </div>
 
@@ -1597,6 +1605,22 @@
       });
     }
 
+    function getPctDescuentoSegunda() {
+      return parseInt(document.getElementById('descuentoSegundaUnidad')?.value) || 0;
+    }
+
+    function aplicaDescuentoSegunda() {
+      return getPctDescuentoSegunda() > 0 && carrito.some(i => i.cantidad >= 2);
+    }
+
+    function calcularSubtotalConDescuento(precio, cantidad, pctDescuento) {
+      if (cantidad <= 1 || pctDescuento <= 0) return precio * cantidad;
+      const conDescuento = Math.floor(cantidad / 2);
+      const sinDescuento = cantidad - conDescuento;
+      const precioDesc = precio * (1 - pctDescuento / 100);
+      return (sinDescuento * precio) + (conDescuento * precioDesc);
+    }
+
     function agregarAlCarrito(id, nombre, variante, precio, codigo) {
       const existente = carrito.find(i => i.producto_id === id);
       const enCarrito = existente ? existente.cantidad : 0;
@@ -1607,11 +1631,13 @@
         return;
       }
 
+      const pct = getPctDescuentoSegunda();
       if (existente) {
         existente.cantidad += 1;
-        existente.subtotal = existente.cantidad * existente.precio_unitario;
+        existente.subtotal = calcularSubtotalConDescuento(existente.precio_unitario, existente.cantidad, pct);
       } else {
-        carrito.push({ producto_id: id, nombre, variante, cantidad: 1, precio_unitario: precio, subtotal: precio, codigo });
+        const sub = calcularSubtotalConDescuento(precio, 1, pct);
+        carrito.push({ producto_id: id, nombre, variante, cantidad: 1, precio_unitario: precio, subtotal: sub, codigo });
       }
       renderCarrito();
     }
@@ -1619,9 +1645,10 @@
     function eliminarDelCarrito(id) {
       const idx = carrito.findIndex(i => i.producto_id === id);
       if (idx !== -1) {
+        const pct = getPctDescuentoSegunda();
         if (carrito[idx].cantidad > 1) {
           carrito[idx].cantidad -= 1;
-          carrito[idx].subtotal = carrito[idx].cantidad * carrito[idx].precio_unitario;
+          carrito[idx].subtotal = calcularSubtotalConDescuento(carrito[idx].precio_unitario, carrito[idx].cantidad, pct);
         } else {
           carrito.splice(idx, 1);
         }
@@ -1641,11 +1668,16 @@
       $listaCarrito.innerHTML = carrito.map(item => {
         const stockRestante = (stockMap.get(item.producto_id) ?? 0) - item.cantidad;
         const stockOk = stockRestante >= 0;
+        const pct = getPctDescuentoSegunda();
+        const sinDesc = item.cantidad * item.precio_unitario;
+        const tieneDesc = pct > 0 && item.cantidad >= 2;
+        const ahorro = tieneDesc ? sinDesc - item.subtotal : 0;
         return `
         <div class="item-carrito">
           <div class="info">
             <div class="nombre-item">${item.codigo ? `<span style="color:var(--text-muted);font-size:11px;font-weight:600;margin-right:4px">${item.codigo}</span>` : ''}${item.nombre}</div>
             <div class="detalle-item">${item.variante} · ${formatear(item.precio_unitario)} c/u</div>
+            ${tieneDesc ? `<div style="font-size:11px;color:#2d6a1e;margin-top:2px">2da unidad -$${pct}% (ahorro: -${formatear(ahorro)})</div>` : ''}
             <div style="font-size:11px;color:${stockOk ? 'var(--text-muted)' : 'var(--red)'};margin-top:2px">${stockOk ? `queda ${stockRestante} unit` : 'stock insuficiente'}</div>
           </div>
           <div class="acciones">
@@ -1694,6 +1726,14 @@
 
     $buscador.addEventListener('input', cargarProductos);
 
+    document.getElementById('descuentoSegundaUnidad').addEventListener('input', () => {
+      const pct = getPctDescuentoSegunda();
+      for (const item of carrito) {
+        item.subtotal = calcularSubtotalConDescuento(item.precio_unitario, item.cantidad, pct);
+      }
+      renderCarrito();
+    });
+
     function actualizarResumenPago() {
       const total = carrito.reduce((t, i) => t + i.subtotal, 0);
       const descuento = parseFloat($pagoDescuento.value) || 0;
@@ -1708,8 +1748,12 @@
       if (descuento > 0) {
         document.getElementById('resumenDescuento').style.display = '';
         document.getElementById('resumenDescuento').innerHTML = `Descuento: <strong>-${formatear(descuento)}</strong> → Total a pagar: <strong>${formatear(totalConDescuento)}</strong>`;
+        $notasPago.placeholder = 'Motivo del descuento (obligatorio)';
+        $notasPago.style.borderColor = '#b33a3a';
       } else {
         document.getElementById('resumenDescuento').style.display = 'none';
+        $notasPago.placeholder = 'Ej: cliente paga a fin de mes…';
+        $notasPago.style.borderColor = '#d4c4b3';
       }
 
       if (suma === 0) {
@@ -1739,6 +1783,17 @@
     document.getElementById('pagoTransferencia').addEventListener('input', actualizarResumenPago);
     document.getElementById('pagoDescuento').addEventListener('input', actualizarResumenPago);
 
+    document.getElementById('btnDescuentoPorcentaje').addEventListener('click', async () => {
+      const total = carrito.reduce((t, i) => t + i.subtotal, 0);
+      const porcentaje = await customPrompt('Porcentaje de descuento (%):');
+      if (porcentaje === null) return;
+      const pct = parseFloat(porcentaje);
+      if (isNaN(pct) || pct <= 0 || pct > 100) { mostrarToast('Porcentaje inválido (1-100)'); return; }
+      const descuento = Math.round(total * (pct / 100));
+      $pagoDescuento.value = descuento;
+      actualizarResumenPago();
+    });
+
     $btnPagar.addEventListener('click', () => {
       $pagoDescuento.value = '';
       $pagoEfectivo.value = '';
@@ -1760,6 +1815,12 @@
       const descuento = parseFloat($pagoDescuento.value) || 0;
       const totalConDescuento = Math.max(0, total - descuento);
       const notas = $notasPago.value.trim();
+
+      if ((descuento > 0 || aplicaDescuentoSegunda()) && !notas) {
+        mostrarToast('Si aplicás descuento, agregá un motivo en las notas');
+        $notasPago.focus();
+        return;
+      }
 
       if (totalConDescuento <= 0) {
         mostrarToast('El total no puede ser 0');
@@ -1812,6 +1873,12 @@
       const tr = parseFloat($pagoTransferencia.value) || 0;
       const suma = ef + mp + tr;
       const notas = $notasPago.value.trim();
+
+      if ((descuento > 0 || aplicaDescuentoSegunda()) && !notas) {
+        mostrarToast('Si aplicás descuento, agregá un motivo en las notas');
+        $notasPago.focus();
+        return;
+      }
 
       if (suma === 0) {
         mostrarToast('Indicá al menos un método de pago');
@@ -1893,16 +1960,17 @@
       } else {
         html += `<div style="display:flex;gap:12px;margin-bottom:16px;flex-wrap:wrap">
           <div style="flex:1;min-width:240px;background:#faf7f4;border-radius:12px;padding:20px;border:2px solid #d4c4b3">
-            <div style="font-size:16px;font-weight:700;color:#2d6a1e;margin-bottom:12px">💵 Efectivo</div>
+            <div style="font-size:16px;font-weight:700;color:#2d6a1e;margin-bottom:4px">💵 Efectivo</div>
+            <div id="cierreEfectivoResumen" style="font-size:12px;color:#5c3a1e;background:#eef7ee;border-radius:8px;padding:8px 10px;margin-bottom:12px;line-height:1.6"></div>
             <label style="font-size:14px;color:#5c3a1e;display:block;margin-bottom:2px;font-weight:600">Contado</label>
-            <div style="font-size:11px;color:#8a7a6a;margin-bottom:4px">Agrega el monto total de dinero contado en caja</div>
+            <div style="font-size:11px;color:#8a7a6a;margin-bottom:4px">Total de dinero contado en caja (incluye lo que retiras)</div>
             <input id="cierreEfectivoContado" type="number" min="0" step="any" placeholder="Ej: 50000" style="width:100%;padding:14px 16px;border:2px solid #d4c4b3;border-radius:10px;font-size:22px;font-weight:700;background:#fff;margin-bottom:14px">
             <label style="font-size:14px;color:#5c3a1e;display:block;margin-bottom:2px;font-weight:600">Retiro</label>
-            <div style="font-size:11px;color:#8a7a6a;margin-bottom:4px">Agrega el monto de dinero que retiras de caja</div>
+            <div style="font-size:11px;color:#8a7a6a;margin-bottom:4px">Monto que retiras de caja (ya incluido en el contado)</div>
             <input id="cierreEfectivoRetiro" type="number" min="0" step="any" placeholder="Ej: 10000" style="width:100%;padding:14px 16px;border:2px solid #d4c4b3;border-radius:10px;font-size:20px;background:#fff;margin-bottom:14px">
             <label style="font-size:14px;color:#5c3a1e;display:block;margin-bottom:2px;font-weight:600">Dejado para siguiente turno</label>
-            <div style="font-size:11px;color:#8a7a6a;margin-bottom:4px">Agrega el monto que dejas en caja para el próximo turno</div>
-            <input id="cierreEfectivoDejado" type="number" min="0" step="any" placeholder="Ej: 20000" style="width:100%;padding:14px 16px;border:2px solid #d4c4b3;border-radius:10px;font-size:20px;background:#fff">
+            <div style="font-size:11px;color:#8a7a6a;margin-bottom:4px">Lo que queda en caja = Contado − Retiro</div>
+            <input id="cierreEfectivoDejado" type="number" min="0" step="any" placeholder="Se calcula solo" style="width:100%;padding:14px 16px;border:2px solid #d4c4b3;border-radius:10px;font-size:20px;background:#fff">
             <div id="cierreEfectivoValidacion" style="font-size:13px;margin-top:10px;text-align:center;color:#8a7a6a"></div>
           </div>
           <div style="flex:1;min-width:200px;background:#f0f7ff;border-radius:12px;padding:18px;border:2px solid #b8d4e8">
@@ -1933,17 +2001,35 @@
 
       const $cajaContado = document.getElementById('cierreEfectivoContado');
       if ($cajaContado) {
+        const $cajaRetiro = document.getElementById('cierreEfectivoRetiro');
+        const $cajaDejado = document.getElementById('cierreEfectivoDejado');
+        const $resumen = document.getElementById('cierreEfectivoResumen');
+        const efEntryModal = data.porPago['Efectivo'] || 0;
+        const efVentasModal = (typeof efEntryModal === 'object' && efEntryModal !== null) ? (efEntryModal.ventas || 0) : efEntryModal;
+        const esperadoTotal = (data.saldoInicial || 0) + efVentasModal + (data.totalIngresos || 0) - (data.totalEgresos || 0);
+        $resumen.innerHTML = `Saldo inicial: <b>${formatear(data.saldoInicial || 0)}</b><br>`
+          + `Efectivo vendido: <b>${formatear(efVentasModal)}</b>`
+          + ((data.totalIngresos || data.totalEgresos) ? `<br>Ingresos/egresos: <b>+${formatear(data.totalIngresos || 0)} / −${formatear(data.totalEgresos || 0)}</b>` : '')
+          + `<br><span style="font-size:13px">Esperado en caja: <b style="color:#2d6a1e">${formatear(esperadoTotal)}</b></span>`;
+
         const validarEfectivo = () => {
           const contado = parseFloat($cajaContado.value) || 0;
-          const retiro = parseFloat(document.getElementById('cierreEfectivoRetiro').value) || 0;
-          const dejado = parseFloat(document.getElementById('cierreEfectivoDejado').value) || 0;
+          const retiro = parseFloat($cajaRetiro.value) || 0;
           const el = document.getElementById('cierreEfectivoValidacion');
-          if (contado > 0 && (retiro > 0 || dejado > 0)) {
-            if (Math.abs(contado - (retiro + dejado)) <= 0.01) {
-              el.textContent = '✅ Cuadra: retiro + dejado = contado';
+          // El "dejado" se calcula solo: contado - retiro
+          if (contado > 0 || retiro > 0) {
+            $cajaDejado.value = Math.max(0, Math.round((contado - retiro) * 100) / 100) || '';
+          }
+          if (contado > 0) {
+            const dif = Math.round(contado - esperadoTotal);
+            if (dif === 0) {
+              el.textContent = '✅ Cuadra exacto con lo esperado';
               el.style.color = '#2d6a1e';
+            } else if (Math.abs(dif) <= 1000) {
+              el.textContent = `≈ Diferencia de ${formatear(dif)} (puede ser vuelto)`;
+              el.style.color = '#8a6a00';
             } else {
-              el.textContent = `⚠️ Debe cumplir: retiro + dejado = ${formatear(contado)} (actual: ${formatear(retiro + dejado)})`;
+              el.textContent = `⚠️ ${dif > 0 ? 'Sobró' : 'Faltan'} ${formatear(Math.abs(dif))} — esperado ${formatear(esperadoTotal)}`;
               el.style.color = '#b33a3a';
             }
           } else {
@@ -1951,8 +2037,8 @@
           }
         };
         $cajaContado.addEventListener('input', validarEfectivo);
-        document.getElementById('cierreEfectivoRetiro').addEventListener('input', validarEfectivo);
-        document.getElementById('cierreEfectivoDejado').addEventListener('input', validarEfectivo);
+        $cajaRetiro.addEventListener('input', validarEfectivo);
+        $cajaDejado.addEventListener('input', validarEfectivo);
       }
 
       document.getElementById('modalCierre').classList.add('mostrar');
@@ -2005,7 +2091,9 @@
 
       const efectivoEntry = data.porPago['Efectivo'] || 0;
       const efectivoVentasCobros = (typeof efectivoEntry === 'object' && efectivoEntry !== null) ? (efectivoEntry.ventas || 0) : efectivoEntry;
-      const efectivoEsperado = data.saldoInicial + efectivoVentasCobros + data.totalIngresos - data.totalEgresos - efectivoRetiro;
+      // El usuario cuenta el efectivo TOTAL manejado (retiro + lo que queda), por eso
+      // NO se resta el retiro aqui. Se resta unicamente para calcular cuanto quedo en caja.
+      const efectivoEsperado = data.saldoInicial + efectivoVentasCobros + data.totalIngresos - data.totalEgresos;
       const diferencia = efectivoContado - efectivoEsperado;
 
       const confirmar = await mostrarConfirmacionCierre(diferencia, data, efectivoContado, efectivoRetiro, efectivoDejado, totalMp, totalTransferencia, efectivoEsperado);
@@ -2051,7 +2139,7 @@
               cantidad: data.cantidad,
               por_pago: data.porPago,
               por_pago_ventas: data.porPagoVentas,
-              por_pago_cobros: data.porPago,
+              por_pago_cobros: data.porPagoCobros,
               diferencias: data.diferencias,
               efectivo_contado: efectivoContado,
               efectivo_retiro: efectivoRetiro,
@@ -2059,6 +2147,9 @@
               total_mp: totalMp,
               total_transferencia: totalTransferencia,
               saldo_inicial: data.saldoInicial,
+              total_ingresos: data.totalIngresos,
+              total_egresos: data.totalEgresos,
+              efectivo_ventas: data.porPago['Efectivo'] || 0,
               apertura_id: data.aperturaId,
             });
             if (cierreResult.error) {
@@ -2074,7 +2165,9 @@
           }
 
           // Paso 2: mostrar resultado
-          const esExacto = diferencia === 0;
+          const TOL = 1000;
+          const esExacto = Math.abs(diferencia) <= 1;
+          const esVuelto = !esExacto && Math.abs(diferencia) <= TOL;
           const esSobrante = diferencia > 0;
 
           // Construir HTML de diferencias por método
@@ -2106,20 +2199,31 @@
           overlay2.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.5);display:flex;align-items:center;justify-content:center;z-index:200';
           overlay2.innerHTML = `
             <div style="background:#fff;border-radius:16px;padding:28px;width:420px;max-width:90vw;text-align:center;box-shadow:0 8px 30px rgba(0,0,0,0.2)">
-              <div style="font-size:44px;margin-bottom:12px">${esExacto ? '✅' : esSobrante ? '💰' : '⚠️'}</div>
-              <h2 style="color:#5c3a1e;margin-bottom:12px;font-size:20px">${esExacto ? 'Cierre Exacto' : esSobrante ? 'Sobra Efectivo' : 'Falta Efectivo'}</h2>
-              <div style="background:${!esExacto && !esSobrante ? '#fde0e0' : '#e4f0e0'};border-radius:10px;padding:14px;margin-bottom:16px;text-align:left;line-height:2">
+              <div style="font-size:44px;margin-bottom:12px">${esExacto || esVuelto ? '✅' : esSobrante ? '💰' : '⚠️'}</div>
+              <h2 style="color:#5c3a1e;margin-bottom:12px;font-size:20px">${esExacto ? 'Cierre Exacto' : esVuelto ? 'Cierre con vuelto' : esSobrante ? 'Sobra Efectivo' : 'Falta Efectivo'}</h2>
+              <div style="background:${(!esExacto && !esVuelto && !esSobrante) ? '#fde0e0' : '#e4f0e0'};border-radius:10px;padding:14px;margin-bottom:16px;text-align:left;line-height:2">
                 <div style="display:flex;justify-content:space-between">
-                  <span style="color:#5c3a1e">Esperado</span>
+                  <span style="color:#5c3a1e">Esperado en caja</span>
                   <span style="font-weight:600">${formatear(efectivoEsperado)}</span>
                 </div>
                 <div style="display:flex;justify-content:space-between">
                   <span style="color:#5c3a1e">Contado</span>
                   <span style="font-weight:600">${formatear(efectivoContado)}</span>
                 </div>
+                ${efectivoRetiro > 0 ? `<div style="display:flex;justify-content:space-between">
+                  <span style="color:#8a7a6a">Retiro</span>
+                  <span style="font-weight:600">${formatear(efectivoRetiro)}</span>
+                </div>` : ''}
+                <div style="display:flex;justify-content:space-between;border-top:1px solid rgba(0,0,0,0.08);padding-top:4px;margin-top:4px">
+                  <span style="color:#5c3a1e;font-weight:600">Queda en caja</span>
+                  <span style="font-weight:700">${formatear(efectivoDejado)}</span>
+                </div>
                 ${esExacto ? `<div style="display:flex;justify-content:space-between;color:#2d6a1e;font-weight:600;border-top:1px solid rgba(45,106,30,0.2);padding-top:4px;margin-top:4px">
                   <span>✅ Exacto</span>
                   <span>—</span>
+                </div>` : esVuelto ? `<div style="display:flex;justify-content:space-between;color:#8a6a00;font-weight:600;border-top:1px solid rgba(138,106,0,0.2);padding-top:4px;margin-top:4px">
+                  <span>≈ Vuelto / diferencia menor</span>
+                  <span>${formatear(diferencia)}</span>
                 </div>` : esSobrante ? `<div style="display:flex;justify-content:space-between;color:#2d6a1e;font-weight:700;border-top:1px solid rgba(45,106,30,0.2);padding-top:4px;margin-top:4px">
                   <span>⬆ Sobrante</span>
                   <span>${formatear(diferencia)}</span>
@@ -2462,20 +2566,35 @@
           ).join('');
         }
 
-        const totalEf = esDetallado ? (porPago['Efectivo']?.ventas || porPago['Efectivo']?.cobros || 0) : (porPago['Efectivo'] || 0);
-        const efectivoEsperado = (c.saldo_inicial || 0) + totalEf + (c.totalIngresos || 0) - (c.totalEgresos || 0) - (c.efectivo_retiro || 0);
+        // Fuente de verdad: efectivo_ventas (guardado al cerrar, desde la tabla pagos).
+        // Fallback al por_pago para cierres viejos que aun no lo tienen.
+        const efEntry = porPago['Efectivo'];
+        const totalEf = (c.efectivo_ventas !== null && c.efectivo_ventas !== undefined)
+          ? c.efectivo_ventas
+          : (esDetallado
+              ? (efEntry && efEntry.ventas !== undefined ? efEntry.ventas : (efEntry?.cobros || 0))
+              : (efEntry || 0));
+        const efectivoEsperado = (c.saldo_inicial || 0) + totalEf + (c.total_ingresos || 0) - (c.total_egresos || 0);
         const difEfectivo = c.efectivo_contado - efectivoEsperado;
+        const TOLERANCIA = 1000;
         let diffCls, diffTxt;
-        if (difEfectivo === 0) {
+        if (Math.abs(difEfectivo) <= 1) {
           diffCls = '#2d6a1e';
           diffTxt = '✅ Exacto';
-        } else if (difEfectivo > 0) {
-          diffCls = '#2d6a1e';
-          diffTxt = `⬆ Sobró ${formatear(difEfectivo)}`;
+        } else if (Math.abs(difEfectivo) <= TOLERANCIA) {
+          diffCls = '#8a6a00';
+          diffTxt = `≈ ${difEfectivo > 0 ? 'sobró' : 'faltó'} ${formatear(Math.abs(difEfectivo))} (vuelto)`;
         } else {
           diffCls = '#b33a3a';
-          diffTxt = `⬇ Faltan ${formatear(Math.abs(difEfectivo))}`;
+          diffTxt = difEfectivo > 0 ? `⬆ Sobró ${formatear(difEfectivo)}` : `⬇ Faltan ${formatear(Math.abs(difEfectivo))}`;
         }
+
+        // Check fisico: el efectivo contado DEBE ser igual a lo que se retiro + lo que quedo en caja
+        const fisicoEsperado = (c.efectivo_retiro || 0) + (c.efectivo_dejado || 0);
+        const difFisico = Math.round((c.efectivo_contado || 0) - fisicoEsperado);
+        const avisoFisico = difFisico !== 0
+          ? `<div style="font-size:11px;color:#b33a3a;margin-top:3px">⚠️ Efectivo contado != Retiro + Dejado (diferencia ${formatear(difFisico)})</div>`
+          : '';
 
         return `
           <div style="padding:10px 0;border-bottom:1px solid #e0d6ca;font-size:13px">
@@ -2485,6 +2604,8 @@
             </div>
             <div style="font-size:12px;color:#8a7a6a;margin-top:2px">${c.fecha} — ${c.cantidad} venta(s)</div>
             <div style="margin-top:4px">${pagosHtml}</div>
+            ${avisoFisico}
+            ${(c.total_ingresos || c.total_egresos) ? `<div style="font-size:11px;color:#8a7a6a">Caja: +${formatear(c.total_ingresos || 0)} ingresos / -${formatear(c.total_egresos || 0)} egresos</div>` : ''}
             ${c.saldo_inicial > 0 ? `<div style="font-size:12px;color:#5c3a1e;margin-top:2px">💰 Saldo inicial: ${formatear(c.saldo_inicial)}</div>` : ''}
             ${c.efectivo_contado > 0 || c.total_mp > 0 || c.total_transferencia > 0 ? `
             <div style="display:flex;gap:8px;margin-top:6px;padding-top:6px;border-top:1px solid #f0e8e0;font-size:12px;flex-wrap:wrap">
