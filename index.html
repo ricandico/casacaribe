@@ -1945,10 +1945,22 @@
       const transEntry = data.porPago['Transferencia'] || 0;
       const transferenciaEsperado = (typeof transEntry === 'object' && transEntry !== null) ? (transEntry.ventas || 0) : transEntry;
 
+      const hoyTexto = new Date().toLocaleDateString('es-AR', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+      let subTexto = hoyTexto;
+      if (data.aperturaId && data.fechaApertura) {
+        const fApertura = new Date(data.fechaApertura + 'T00:00:00');
+        const fHoy = new Date();
+        const mismoDia = fApertura.toDateString() === fHoy.toDateString();
+        const txtApertura = fApertura.toLocaleDateString('es-AR', { year: 'numeric', month: 'long', day: 'numeric' });
+        subTexto = mismoDia
+          ? txtApertura
+          : `Caja abierta el ${txtApertura}`;
+      }
+
       let html = `
         <div style="text-align:center;margin-bottom:16px;padding-bottom:16px;border-bottom:1px solid #e0d6ca">
           <div style="font-size:20px;font-weight:700;color:#5c3a1e">${data.usuario}</div>
-          <div style="font-size:13px;color:#8a7a6a">${new Date().toLocaleDateString('es-AR', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</div>
+          <div style="font-size:13px;color:#8a7a6a">${subTexto}</div>
         </div>`;
 
       if (data.yaCerrado) {
@@ -4153,8 +4165,12 @@
       cargarSelectCategorias();
     };
 
-    // Set date defaults
-    document.getElementById('contabFecha').value = new Date().toISOString().slice(0, 10);
+    // Set date defaults (fecha local de la tienda, no UTC)
+    {
+      const d = new Date();
+      document.getElementById('contabFecha').value =
+        `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+    }
 
     // Modal editar gasto
     document.getElementById('btnCancelarEditGasto').addEventListener('click', () => {

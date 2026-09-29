@@ -349,6 +349,25 @@ app.whenReady().then(() => {
 
   createWindow();
 
+  // === HELPERS DE FECHA ===
+  // Todo el POS trabaja con la fecha/hora LOCAL de la tienda.
+  // Usar toISOString() devuelve UTC y a partir de las 21:00 ya seria "manana",
+  // lo que hacia que no se encontrara la caja abierta ni se pudieran guardar ventas.
+  function fechaLocal(d = new Date()) {
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+  }
+
+  // Ultima caja abierta del usuario, sin importar la fecha en que se abrio.
+  // Permite cerrar un turno que empezo ayer o que cruzo la medianoche.
+  function aperturaAbierta(usuario_id) {
+    return db.prepare(`
+      SELECT * FROM apertura_caja
+      WHERE usuario_id = ?
+        AND id NOT IN (SELECT apertura_id FROM cierres WHERE apertura_id IS NOT NULL)
+      ORDER BY id DESC LIMIT 1
+    `).get(usuario_id);
+  }
+
   ipcMain.handle('get-categories', () => {
     const cats = db.prepare('SELECT DISTINCT categoria FROM productos ORDER BY categoria').all();
     // Siempre incluir categorías base
@@ -372,8 +391,8 @@ app.whenReady().then(() => {
   });
 
   ipcMain.handle('create-sale', (_, { items, total, descuento, total_con_descuento, pagos, notas, usuario_id, usuario_nombre }) => {
-    const hoy = new Date().toISOString().slice(0, 10);
-    const apertura = db.prepare('SELECT id, hora FROM apertura_caja WHERE usuario_id = ? AND fecha = ? ORDER BY id DESC LIMIT 1').get(usuario_id, hoy);
+    const hoy = fechaLocal();
+    const apertura = aperturaAbierta(usuario_id);
     if (!apertura) return { success: false, error: 'No hay caja abierta. Abrí la caja primero.' };
     const tieneCierre = db.prepare('SELECT id FROM cierres WHERE apertura_id = ?').get(apertura.id);
     if (tieneCierre) return { success: false, error: 'La caja ya está cerrada. Abrí una nueva jornada.' };
@@ -505,11 +524,11 @@ app.whenReady().then(() => {
   });
 
   ipcMain.handle('get-cierre', (_, { usuario_id }) => {
-    const hoy = new Date().toISOString().slice(0, 10);
-    const apertura = db.prepare('SELECT id, saldo_inicial, hora FROM apertura_caja WHERE usuario_id = ? AND fecha = ? ORDER BY id DESC LIMIT 1').get(usuario_id, hoy);
+    const hoy = fechaLocal();
+    const apertura = aperturaAbierta(usuario_id);
 
     if (!apertura) {
-      return { ventas: [], total: 0, totalDescuentos: 0, cantidad: 0, porPago: {}, usuario: '', movimientos: [], totalIngresos: 0, totalEgresos: 0, porPagoPagos: {}, porPagoCobros: {}, porPagoVentas: {}, diferencias: {}, yaCerrado: false, saldoInicial: 0, aperturaId: null };
+      return { ventas: [], total: 0, totalDescuentos: 0, cantidad: 0, porPago: {}, usuario: '', movimientos: [], totalIngresos: 0, totalEgresos: 0, porPagoPagos: {}, porPagoCobros: {}, porPagoVentas: {}, diferencias: {}, yaCerrado: false, saldoInicial: 0, aperturaId: null, fechaApertura: null };
     }
 
     const desdeApertura = apertura.hora;
@@ -597,7 +616,7 @@ app.whenReady().then(() => {
 
     const yaCerrado = aperturaId ? !!db.prepare('SELECT id FROM cierres WHERE apertura_id = ?').get(aperturaId) : false;
 
-    return { ventas, total: totalVentas, totalDescuentos, cantidad: ventas.length, porPago, usuario: usuario?.username || '', movimientos, totalIngresos, totalEgresos, porPagoPagos, porPagoCobros, porPagoVentas, diferencias, yaCerrado, saldoInicial, aperturaId };
+    return { ventas, total: totalVentas, totalDescuentos, cantidad: ventas.length, porPago, usuario: usuario?.username || '', movimientos, totalIngresos, totalEgresos, porPagoPagos, porPagoCobros, porPagoVentas, diferencias, yaCerrado, saldoInicial, aperturaId, fechaApertura: apertura.fecha };
   });
 
   // === BACKUP A GITHUB ===
@@ -636,7 +655,7 @@ app.whenReady().then(() => {
       }
     } catch (e) { /* archivo no existe aún */ }
 
-    const date = new Date().toISOString().slice(0, 10);
+    const date = fechaLocal();
     const body = {
       message: `Backup panaderia.db — ${date}`,
       content: dbBase64,
@@ -709,7 +728,8 @@ app.whenReady().then(() => {
     const existeCierre = db.prepare('SELECT id FROM cierres WHERE apertura_id = ?').get(apertura_id);
     if (existeCierre) return { success: false, error: 'Esta jornada ya fue cerrada.' };
 
-    const hoy = new Date().toISOString().slice(0, 10);
+    const abierto = db.prepare('SELECT fecha FROM apertura_caja WHERE id = ?').get(apertura_id);
+    const hoy = abierto ? abierto.fecha : fechaLocal();
     const porPagoCobrosReal = por_pago_cobros || {};
     const detallado = {};
     const metodos = new Set([...Object.keys(por_pago_ventas || {}), ...Object.keys(porPagoCobrosReal)]);
@@ -776,8 +796,7 @@ app.whenReady().then(() => {
   });
 
   ipcMain.handle('get-today-total', (_, usuario_id) => {
-    const hoy = new Date().toISOString().slice(0, 10);
-    const apertura = db.prepare('SELECT id, hora FROM apertura_caja WHERE usuario_id = ? AND fecha = ? ORDER BY id DESC LIMIT 1').get(usuario_id, hoy);
+    const apertura = aperturaAbierta(usuario_id);
 
     if (!apertura) {
       return { cantidad: 0, total: 0, saldo_pendiente: 0, pendiente: 0 };
@@ -796,8 +815,7 @@ app.whenReady().then(() => {
   });
 
   ipcMain.handle('cobrar-pendiente', (_, { venta_id, monto, metodo, usuario_id, usuario_nombre }) => {
-    const hoy = new Date().toISOString().slice(0, 10);
-    const apertura = db.prepare('SELECT id FROM apertura_caja WHERE usuario_id = ? AND fecha = ?').get(usuario_id, hoy);
+    const apertura = aperturaAbierta(usuario_id);
     if (!apertura) return { error: 'No tenés caja abierta. Abrila antes de cobrar.' };
 
     const venta = db.prepare('SELECT saldo_pendiente FROM ventas WHERE id = ?').get(venta_id);
@@ -857,9 +875,9 @@ app.whenReady().then(() => {
     if (!venta) return { success: false, error: 'Venta no encontrada' };
 
     // Validar que la caja del usuario esté abierta
-    const hoy = new Date().toISOString().slice(0, 10);
+    const hoy = fechaLocal();
     const ventaUsuarioId = venta.usuario_id || usuario_id;
-    const apertura = db.prepare('SELECT id FROM apertura_caja WHERE usuario_id = ? AND fecha = ? ORDER BY id DESC LIMIT 1').get(ventaUsuarioId, hoy);
+    const apertura = aperturaAbierta(ventaUsuarioId);
     if (!apertura) return { success: false, error: 'No hay caja abierta. Abrí la caja primero.' };
     const tieneCierre = db.prepare('SELECT id FROM cierres WHERE apertura_id = ?').get(apertura.id);
     if (tieneCierre) return { success: false, error: 'La caja ya está cerrada. No se pueden agregar productos.' };
@@ -922,9 +940,9 @@ app.whenReady().then(() => {
     if (!venta) return { success: false, error: 'Venta no encontrada' };
 
     // Validar caja abierta
-    const hoy = new Date().toISOString().slice(0, 10);
+    const hoy = fechaLocal();
     const ventaUsuarioId = venta.usuario_id || usuario_id;
-    const apertura = db.prepare('SELECT id FROM apertura_caja WHERE usuario_id = ? AND fecha = ? ORDER BY id DESC LIMIT 1').get(ventaUsuarioId, hoy);
+    const apertura = aperturaAbierta(ventaUsuarioId);
     if (!apertura) return { success: false, error: 'No hay caja abierta' };
     const tieneCierre = db.prepare('SELECT id FROM cierres WHERE apertura_id = ?').get(apertura.id);
     if (tieneCierre) return { success: false, error: 'La caja ya está cerrada' };
@@ -977,9 +995,9 @@ app.whenReady().then(() => {
     if (!venta) return { success: false, error: 'Venta no encontrada' };
 
     // Validar caja abierta
-    const hoy = new Date().toISOString().slice(0, 10);
+    const hoy = fechaLocal();
     const ventaUsuarioId = venta.usuario_id || usuario_id;
-    const apertura = db.prepare('SELECT id FROM apertura_caja WHERE usuario_id = ? AND fecha = ? ORDER BY id DESC LIMIT 1').get(ventaUsuarioId, hoy);
+    const apertura = aperturaAbierta(ventaUsuarioId);
     if (!apertura) return { success: false, error: 'No hay caja abierta' };
     const tieneCierre = db.prepare('SELECT id FROM cierres WHERE apertura_id = ?').get(apertura.id);
     if (tieneCierre) return { success: false, error: 'La caja ya está cerrada' };
@@ -1017,8 +1035,8 @@ app.whenReady().then(() => {
   });
 
   ipcMain.handle('update-sale-payments', (_, { venta_id, pagos, usuario_id }) => {
-    const hoy = new Date().toISOString().slice(0, 10);
-    const apertura = db.prepare('SELECT id FROM apertura_caja WHERE usuario_id = ? AND fecha = ?').get(usuario_id, hoy);
+    const hoy = fechaLocal();
+    const apertura = aperturaAbierta(usuario_id);
     if (!apertura) return { error: 'No tenés caja abierta. Abrila para editar pagos.' };
 
     const venta = db.prepare('SELECT total_con_descuento, estado FROM ventas WHERE id = ?').get(venta_id);
@@ -1051,8 +1069,8 @@ app.whenReady().then(() => {
   });
 
   ipcMain.handle('get-movimientos-caja', (_, { usuario_id }) => {
-    const hoy = new Date().toISOString().slice(0, 10);
-    const apertura = db.prepare('SELECT id, hora FROM apertura_caja WHERE usuario_id = ? AND fecha = ? ORDER BY id DESC LIMIT 1').get(usuario_id, hoy);
+    const hoy = fechaLocal();
+    const apertura = aperturaAbierta(usuario_id);
     if (!apertura) return [];
     return db.prepare(`
       SELECT id, tipo, monto, concepto, fecha, usuario_nombre
@@ -1114,39 +1132,28 @@ app.whenReady().then(() => {
   });
 
   ipcMain.handle('abrir-caja', (_, { usuario_id, saldo_inicial }) => {
-    // Verificar si el usuario tiene alguna apertura sin cerrar
-    const aperturaAbierta = db.prepare(`
-      SELECT a.id, a.fecha, a.hora
-      FROM apertura_caja a
-      WHERE a.usuario_id = ? AND a.cerrado = 0
-      AND NOT EXISTS (SELECT 1 FROM cierres c WHERE c.apertura_id = a.id)
-      ORDER BY a.id DESC LIMIT 1
-    `).get(usuario_id);
-    if (aperturaAbierta) {
-      return { success: false, error: `Tenés una caja abierta desde el ${aperturaAbierta.fecha}. Cerrala antes de abrir una nueva.` };
+    // Verificar si el usuario tiene alguna apertura sin cerrar, sin importar la fecha
+    const abierta = aperturaAbierta(usuario_id);
+    if (abierta) {
+      return { success: false, error: `Tenés una caja abierta desde el ${abierta.fecha} ${String(abierta.hora).slice(11)}. Cerrala antes de abrir una nueva.` };
     }
 
-    const hoy = new Date().toISOString().slice(0, 10);
+    const hoy = fechaLocal();
     db.prepare('INSERT INTO apertura_caja (usuario_id, fecha, saldo_inicial) VALUES (?, ?, ?)').run(usuario_id, hoy, saldo_inicial);
     return { success: true };
   });
 
   ipcMain.handle('get-apertura', (_, usuario_id) => {
-    // Buscar apertura abierta sin cierre (cualquier fecha)
-    const apertura = db.prepare(`
-      SELECT a.id, a.saldo_inicial, a.hora, a.fecha
-      FROM apertura_caja a
-      WHERE a.usuario_id = ? AND a.cerrado = 0
-      AND NOT EXISTS (SELECT 1 FROM cierres c WHERE c.apertura_id = a.id)
-      ORDER BY a.id DESC LIMIT 1
-    `).get(usuario_id);
+    // Misma fuente de verdad que el resto de la app: una apertura cuenta como
+    // abierta mientras no exista un cierre que la referencie. La columna
+    // apertura_caja.cerrado nunca se actualizo (siempre 0) y no se usa.
+    const apertura = aperturaAbierta(usuario_id);
     if (!apertura) return null;
     return apertura;
   });
 
   ipcMain.handle('get-esta-cerrado', (_, usuario_id) => {
-    const hoy = new Date().toISOString().slice(0, 10);
-    const apertura = db.prepare('SELECT id FROM apertura_caja WHERE usuario_id = ? AND fecha = ? ORDER BY id DESC LIMIT 1').get(usuario_id, hoy);
+    const apertura = aperturaAbierta(usuario_id);
     if (!apertura) return false;
     const cierre = db.prepare('SELECT id FROM cierres WHERE apertura_id = ?').get(apertura.id);
     return !!cierre;
