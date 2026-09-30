@@ -1297,10 +1297,23 @@
       }
     };
 
+    function _errorSidebar(nombre, e) {
+      console.error('Error en ' + nombre + ':', e);
+      alert('No se pudo abrir "' + nombre + '".\n\n' + (e && e.message ? e.message : e));
+    }
+
     document.querySelectorAll('.sidebar-btn').forEach(btn => {
       btn.addEventListener('click', () => {
         const action = btn.dataset.action;
-        if (sidebarActions[action]) sidebarActions[action]();
+        if (!sidebarActions[action]) return;
+        try {
+          const r = sidebarActions[action]();
+          if (r && typeof r.catch === 'function') {
+            r.catch(e => _errorSidebar(btn.textContent.trim(), e));
+          }
+        } catch (e) {
+          _errorSidebar(btn.textContent.trim(), e);
+        }
       });
     });
 
@@ -2538,11 +2551,14 @@
     let _cierresData = [];
 
     async function abrirHistorialCierres() {
+      const modal = document.getElementById('modalHistorialCierres');
+      // Mostrar el modal antes de renderizar: si algo falla al pintar la lista,
+      // el usuario igual puede cerrar el modal en vez de quedar trabado.
+      modal.classList.add('mostrar');
       const cierres = await window.api.getHistorialCierres();
-      _cierresData = cierres;
+      _cierresData = cierres || [];
       _cierresPagina = 1;
       _renderCierresPagina();
-      document.getElementById('modalHistorialCierres').classList.add('mostrar');
     }
 
     function _renderCierresPagina() {
@@ -2556,7 +2572,13 @@
       const { items, pagina, totalPaginas } = paginar(_cierresData, _cierresPagina, 5);
 
       contenedor.innerHTML = items.map(c => {
-        const porPago = JSON.parse(c.por_pago || '{}');
+        let porPago = {};
+        try {
+          const parsed = JSON.parse(c.por_pago || '{}');
+          if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) porPago = parsed;
+        } catch (e) {
+          console.error('por_pago ilegible en cierre ' + c.id, e);
+        }
         const esDetallado = porPago['Efectivo'] && typeof porPago['Efectivo'] === 'object';
 
         let pagosHtml = '';

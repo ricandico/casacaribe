@@ -19,6 +19,22 @@ function getDbPath() {
   return dbPath;
 }
 
+// === INSTANCIA UNICA ===
+// Sin esto, abrir el programa varias veces crea varios procesos escribiendo
+// sobre el mismo panaderia.db y saltan errores de "database is locked" o
+// migraciones duplicadas. El segundo launch solo enfoca la ventana existente.
+const unicaInstancia = app.requestSingleInstanceLock();
+if (!unicaInstancia) {
+  app.quit();
+} else {
+  app.on('second-instance', () => {
+    if (mainWindow) {
+      if (mainWindow.isMinimized()) mainWindow.restore();
+      mainWindow.focus();
+    }
+  });
+}
+
 function createWindow() {
   mainWindow = new BrowserWindow({
     width: 1200,
@@ -35,6 +51,11 @@ function createWindow() {
 
 app.whenReady().then(() => {
   db = new Database(getDbPath());
+  // WAL + busy timeout: permite lecturas concurrentes y espera ante un lock
+  // breve en vez de fallar de inmediato con SQLITE_BUSY.
+  db.pragma('journal_mode = WAL');
+  db.pragma('busy_timeout = 5000');
+  db.pragma('foreign_keys = ON');
 
   // Crear tablas base si no existen
   db.prepare(`
