@@ -1168,6 +1168,69 @@ app.whenReady().then(() => {
     `).all(...params);
   });
 
+  // Cuenta de Mercado Pago: ventas (automaticas) + movimientos manuales.
+  // Las ventas NO se registran a mano, se leen de la tabla pagos, asi que no
+  // hay doble conteo. Los cobros de cuentas pendientes tambien entran, porque
+  // esa plata si llega a la cuenta de MP.
+  ipcMain.handle('get-cuenta-mercadopago', (_, { desde, hasta, tipo } = {}) => {
+    const condV = [];
+    const paramsV = [];
+    if (desde) { condV.push('v.fecha_hora >= ?'); paramsV.push(desde + ' 00:00:00'); }
+    if (hasta) { condV.push('v.fecha_hora <= ?'); paramsV.push(hasta + ' 23:59:59'); }
+    if (tipo === 'egreso') { condV.push('1 = 0'); }
+    const whereV = condV.length ? 'AND ' + condV.join(' AND ') : '';
+
+    const condC = [];
+    const paramsC = [];
+    if (desde) { condC.push('c.fecha >= ?'); paramsC.push(desde + ' 00:00:00'); }
+    if (hasta) { condC.push('c.fecha <= ?'); paramsC.push(hasta + ' 23:59:59'); }
+    if (tipo === 'egreso') { condC.push('1 = 0'); }
+    const whereC = condC.length ? 'AND ' + condC.join(' AND ') : '';
+
+    const condM = [];
+    const paramsM = [];
+    if (desde) { condM.push('m.fecha >= ?'); paramsM.push(desde + ' 00:00:00'); }
+    if (hasta) { condM.push('m.fecha <= ?'); paramsM.push(hasta + ' 23:59:59'); }
+    if (tipo === 'ingreso' || tipo === 'egreso') { condM.push('m.tipo = ?'); paramsM.push(tipo); }
+    const whereM = condM.length ? 'WHERE ' + condM.join(' AND ') : '';
+
+    const filas = db.prepare(`
+      SELECT 'venta' AS origen, v.id AS ref_id, v.fecha_hora AS fecha,
+             'ingreso' AS tipo, p.monto AS monto,
+             'Venta #' || v.id AS concepto,
+             v.usuario_id AS usuario_id, v.usuario_nombre AS usuario_nombre
+      FROM pagos p JOIN ventas v ON v.id = p.venta_id
+      WHERE p.metodo = 'Mercado Pago' ${whereV}
+
+      UNION ALL
+
+      SELECT 'cobro' AS origen, c.venta_id AS ref_id, c.fecha AS fecha,
+             'ingreso' AS tipo, c.monto AS monto,
+             'Cobro venta #' || c.venta_id AS concepto,
+             c.usuario_id AS usuario_id, c.usuario_nombre AS usuario_nombre
+      FROM cobros c
+      WHERE c.metodo = 'Mercado Pago' ${whereC}
+
+      UNION ALL
+
+      SELECT 'manual' AS origen, m.id AS ref_id, m.fecha AS fecha,
+             m.tipo AS tipo, m.monto AS monto, m.concepto AS concepto,
+             m.usuario_id AS usuario_id, m.usuario_nombre AS usuario_nombre
+      FROM movimientos_mercadopago m
+      ${whereM}
+
+      ORDER BY fecha ASC, origen ASC, ref_id ASC
+    `).all(...paramsV, ...paramsC, ...paramsM);
+
+    // Saldo acumulado en orden cronologico
+    let saldo = 0;
+    for (const f of filas) {
+      saldo += f.tipo === 'ingreso' ? f.monto : -f.monto;
+      f.saldo = saldo;
+    }
+    return filas;
+  });
+
   ipcMain.handle('delete-movimiento-mercadopago', (_, { id, usuario_id }) => {
     const mov = db.prepare('SELECT usuario_id FROM movimientos_mercadopago WHERE id = ?').get(id);
     if (!mov) return { success: false, error: 'Movimiento no encontrado' };

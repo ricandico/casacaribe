@@ -26,6 +26,7 @@ contextBridge.exposeInMainWorld('api', {
   addMovimientoCaja: (data) => ipcRenderer.invoke('add-movimiento-caja', data),
   addMovimientoMercadoPago: (data) => ipcRenderer.invoke('add-movimiento-mercadopago', data),
   getMovimientosMercadoPago: (data) => ipcRenderer.invoke('get-movimientos-mercadopago', data),
+  getCuentaMercadoPago: (data) => ipcRenderer.invoke('get-cuenta-mercadopago', data),
   deleteMovimientoMercadoPago: (data) => ipcRenderer.invoke('delete-movimiento-mercadopago', data),
   getMovimientosCaja: (data) => ipcRenderer.invoke('get-movimientos-caja', data),
   deleteMovimientoCaja: (id) => ipcRenderer.invoke('delete-movimiento-caja', id),

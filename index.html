@@ -915,7 +915,8 @@
     <div class="modal" style="width:480px;max-height:85vh;overflow-y:auto">
       <h2>💳 Cuenta Mercado Pago</h2>
       <div style="font-size:12px;color:#8a7a6a;margin:-6px 0 14px;background:#faf7f4;border:1px solid #e0d6ca;border-radius:6px;padding:8px 10px">
-        Estos movimientos son de la cuenta de Mercado Pago y <b>no afectan la caja en efectivo</b> ni el cierre de jornada.
+        Las ventas cobradas con Mercado Pago entran <b>automáticamente</b> (no las cargues a mano).
+        Cargá acá solo comisiones, retiros a banco y devoluciones. Nada de esto afecta la caja en efectivo.
       </div>
       <div id="mpZonaAgregar" style="display:flex;gap:8px;margin-bottom:16px;padding-bottom:16px;border-bottom:1px solid #e0d6ca;flex-wrap:wrap;align-items:flex-end">
         <div style="flex:1;min-width:120px">
@@ -1248,11 +1249,11 @@
           <div style="flex:1;min-width:120px">
             <label style="font-size:12px;font-weight:500;color:#5c3a1e;display:block;margin-bottom:2px">Tipo</label>
             <select id="mpFiltroTipo" style="width:100%;padding:8px;border:1px solid #d4c4b3;border-radius:6px;font-size:13px;background:#faf7f4">
-              <option value="">Todos</option>
-              <option value="ingreso">Ingresos</option>
-              <option value="egreso">Egresos</option>
-            </select>
-          </div>
+            <option value="">Todos</option>
+            <option value="ingreso">Ingresos</option>
+            <option value="egreso">Egresos</option>
+          </select>
+        </div>
           <button id="mpAplicarFiltro" style="background:#5c3a1e;color:#fff;border:none;padding:8px 16px;border-radius:6px;cursor:pointer;font-size:13px;font-weight:600;height:36px">Filtrar</button>
           <button id="mpLimpiarFiltro" style="background:#e8ddd2;color:#5c3a1e;border:none;padding:8px 14px;border-radius:6px;cursor:pointer;font-size:13px;height:36px">Limpiar</button>
         </div>
@@ -2982,32 +2983,35 @@
     }
 
     async function cargarMercadoPago() {
-      const movs = await window.api.getMovimientosMercadoPago({ solo_propios: false });
+      const movs = await window.api.getCuentaMercadoPago({});
       renderMercadoPago(movs);
     }
 
     function renderMercadoPago(movimientos) {
       const contenedor = document.getElementById('mpMovimientosList');
-      const lista = movimientos || [];
+      const lista = (movimientos || []).slice().reverse();
 
       if (lista.length === 0) {
         contenedor.innerHTML = '<div style="text-align:center;color:#8a7a6a;padding:20px;font-size:14px">Sin movimientos de Mercado Pago</div>';
       } else {
         contenedor.innerHTML = lista.map(m => {
           const esIngreso = m.tipo === 'ingreso';
+          const esVenta = m.origen === 'venta' || m.origen === 'cobro';
           return `
             <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid #f0e8e0;font-size:13px">
               <div style="flex:1">
-                <div style="display:flex;align-items:center;gap:6px">
+                <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap">
                   <span style="font-weight:600;color:${esIngreso ? '#2d6a1e' : '#b33a3a'}">${esIngreso ? '➕' : '➖'} ${esIngreso ? 'Ingreso' : 'Egreso'}</span>
                   <span style="color:#8a7a6a;font-size:11px">${m.fecha ? m.fecha.replace('T', ' ').slice(0, 16) : ''}</span>
+                  ${esVenta ? '<span style="background:#e8ddd2;color:#5c3a1e;font-size:10px;padding:1px 6px;border-radius:8px">automático</span>' : ''}
                   ${m.usuario_nombre ? `<span style="color:#8a7a6a;font-size:11px">· ${m.usuario_nombre}</span>` : ''}
                 </div>
                 <div style="color:#5c3a1e;margin-top:2px">${m.concepto}</div>
               </div>
-              <div style="display:flex;align-items:center;gap:8px">
+              <div style="display:flex;align-items:center;gap:10px">
+                <span style="color:#8a7a6a;font-size:11px">saldo ${formatear(m.saldo)}</span>
                 <span style="font-weight:700;font-size:15px;color:${esIngreso ? '#2d6a1e' : '#b33a3a'}">${esIngreso ? '+' : '-'} ${formatear(m.monto)}</span>
-                <button class="btn-del-mp" data-id="${m.id}" style="background:none;border:none;color:#b33a3a;cursor:pointer;font-size:16px;padding:2px;line-height:1" title="Eliminar">×</button>
+                ${esVenta ? '' : `<button class="btn-del-mp" data-id="${m.ref_id}" style="background:none;border:none;color:#b33a3a;cursor:pointer;font-size:16px;padding:2px;line-height:1" title="Eliminar">×</button>`}
               </div>
             </div>`;
         }).join('');
@@ -3026,8 +3030,9 @@
         });
       }
 
-      const totalIngresos = lista.filter(m => m.tipo === 'ingreso').reduce((s, m) => s + m.monto, 0);
-      const totalEgresos = lista.filter(m => m.tipo === 'egreso').reduce((s, m) => s + m.monto, 0);
+      const todos = movimientos || [];
+      const totalIngresos = todos.filter(m => m.tipo === 'ingreso').reduce((s, m) => s + m.monto, 0);
+      const totalEgresos = todos.filter(m => m.tipo === 'egreso').reduce((s, m) => s + m.monto, 0);
       document.getElementById('mpTotalIngresos').textContent = formatear(totalIngresos);
       document.getElementById('mpTotalEgresos').textContent = formatear(totalEgresos);
       document.getElementById('mpSaldo').textContent = formatear(totalIngresos - totalEgresos);
@@ -4066,7 +4071,7 @@
       const desde = document.getElementById('mpFiltroDesde').value;
       const hasta = document.getElementById('mpFiltroHasta').value;
       const tipo = document.getElementById('mpFiltroTipo').value;
-      _mpContabData = await window.api.getMovimientosMercadoPago({ desde, hasta, tipo }) || [];
+      _mpContabData = await window.api.getCuentaMercadoPago({ desde, hasta, tipo }) || [];
       _mpContabPagina = 1;
       _renderMPContabPagina();
     }
@@ -4074,10 +4079,17 @@
     function _renderMPContabPagina() {
       const contenedor = document.getElementById('contabMPLista');
       const resumen = document.getElementById('contabMPResumen');
-      const lista = _mpContabData;
+      const todos = _mpContabData;
+      // La lista se muestra de mas nuevo a mas viejo, pero el saldo acumulado
+      // se calcula en orden cronologico para que sea correcto.
+      const lista = todos.slice().reverse();
 
-      const totalIngresos = lista.filter(m => m.tipo === 'ingreso').reduce((s, m) => s + m.monto, 0);
-      const totalEgresos = lista.filter(m => m.tipo === 'egreso').reduce((s, m) => s + m.monto, 0);
+      const totalIngresos = todos.filter(m => m.tipo === 'ingreso').reduce((s, m) => s + m.monto, 0);
+      const totalEgresos = todos.filter(m => m.tipo === 'egreso').reduce((s, m) => s + m.monto, 0);
+      const saldoFinal = totalIngresos - totalEgresos;
+      const ventasAuto = todos.filter(m => m.origen !== 'manual').length;
+      const manuales = todos.length - ventasAuto;
+
       resumen.innerHTML = `
         <div style="flex:1;min-width:110px;background:#e4f0e0;border-radius:8px;padding:10px;text-align:center">
           <div style="font-size:11px;color:#2d6a1e">Ingresos</div>
@@ -4089,11 +4101,15 @@
         </div>
         <div style="flex:1;min-width:110px;background:#e8ddd2;border-radius:8px;padding:10px;text-align:center">
           <div style="font-size:11px;color:#5c3a1e">Saldo</div>
-          <div style="font-size:16px;font-weight:700;color:#5c3a1e">${formatear(totalIngresos - totalEgresos)}</div>
+          <div style="font-size:16px;font-weight:700;color:#5c3a1e">${formatear(saldoFinal)}</div>
         </div>
         <div style="flex:1;min-width:110px;background:#f0f7ff;border-radius:8px;padding:10px;text-align:center">
-          <div style="font-size:11px;color:#1a6a9e">Movimientos</div>
-          <div style="font-size:16px;font-weight:700;color:#1a6a9e">${lista.length}</div>
+          <div style="font-size:11px;color:#1a6a9e">Automáticos</div>
+          <div style="font-size:16px;font-weight:700;color:#1a6a9e">${ventasAuto}</div>
+        </div>
+        <div style="flex:1;min-width:110px;background:#f5f0e8;border-radius:8px;padding:10px;text-align:center">
+          <div style="font-size:11px;color:#5c3a1e">Manuales</div>
+          <div style="font-size:16px;font-weight:700;color:#5c3a1e">${manuales}</div>
         </div>`;
 
       if (lista.length === 0) {
@@ -4106,19 +4122,22 @@
 
       contenedor.innerHTML = items.map(m => {
         const esIngreso = m.tipo === 'ingreso';
+        const esVenta = m.origen === 'venta' || m.origen === 'cobro';
         return `
           <div style="display:flex;justify-content:space-between;align-items:center;padding:9px 0;border-bottom:1px solid #f0e8e0;font-size:13px">
             <div style="flex:1">
               <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap">
                 <span style="font-weight:600;color:${esIngreso ? '#2d6a1e' : '#b33a3a'}">${esIngreso ? '➕' : '➖'} ${esIngreso ? 'Ingreso' : 'Egreso'}</span>
                 <span style="color:#8a7a6a;font-size:11px">${m.fecha ? m.fecha.replace('T', ' ').slice(0, 16) : ''}</span>
-                ${m.username || m.usuario_nombre ? `<span style="color:#8a7a6a;font-size:11px">· ${m.username || m.usuario_nombre}</span>` : ''}
+                ${esVenta ? '<span style="background:#e8ddd2;color:#5c3a1e;font-size:10px;padding:1px 6px;border-radius:8px">automático</span>' : '<span style="background:#e4f0e0;color:#2d6a1e;font-size:10px;padding:1px 6px;border-radius:8px">manual</span>'}
+                ${m.usuario_nombre ? `<span style="color:#8a7a6a;font-size:11px">· ${m.usuario_nombre}</span>` : ''}
               </div>
               <div style="color:#5c3a1e;margin-top:2px">${m.concepto}</div>
             </div>
-            <div style="display:flex;align-items:center;gap:8px">
-              <span style="font-weight:700;font-size:15px;color:${esIngreso ? '#2d6a1e' : '#b33a3a'}">${esIngreso ? '+' : '-'} ${formatear(m.monto)}</span>
-              <button class="btn-del-mpc" data-id="${m.id}" style="background:none;border:none;color:#b33a3a;cursor:pointer;font-size:16px;padding:2px;line-height:1" title="Eliminar">×</button>
+            <div style="display:flex;align-items:center;gap:10px">
+              <span style="color:#8a7a6a;font-size:11px;min-width:82px;text-align:right">saldo ${formatear(m.saldo)}</span>
+              <span style="font-weight:700;font-size:15px;color:${esIngreso ? '#2d6a1e' : '#b33a3a'};min-width:82px;text-align:right">${esIngreso ? '+' : '-'} ${formatear(m.monto)}</span>
+              ${esVenta ? '' : `<button class="btn-del-mpc" data-id="${m.ref_id}" style="background:none;border:none;color:#b33a3a;cursor:pointer;font-size:16px;padding:2px;line-height:1" title="Eliminar">×</button>`}
             </div>
           </div>`;
       }).join('');
