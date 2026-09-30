@@ -194,6 +194,22 @@ app.whenReady().then(() => {
     )
   `).run();
 
+  // Movimientos de la cuenta de Mercado Pago.
+  // Deliberadamente separada de movimientos_caja: NO altera el efectivo de la
+  // caja ni entra en el calculo del cierre. Es un registro contable aparte.
+  db.prepare(`
+    CREATE TABLE IF NOT EXISTS movimientos_mercadopago (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      tipo TEXT NOT NULL,
+      monto REAL NOT NULL,
+      concepto TEXT NOT NULL,
+      fecha TEXT DEFAULT (datetime('now', 'localtime')),
+      usuario_id INTEGER,
+      usuario_nombre TEXT,
+      FOREIGN KEY (usuario_id) REFERENCES usuarios(id)
+    )
+  `).run();
+
   db.prepare(`
     CREATE TABLE IF NOT EXISTS descartes (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -1103,6 +1119,64 @@ app.whenReady().then(() => {
 
   ipcMain.handle('delete-movimiento-caja', (_, id) => {
     db.prepare('DELETE FROM movimientos_caja WHERE id = ?').run(id);
+    return { success: true };
+  });
+
+  // === MOVIMIENTOS DE MERCADO PAGO ===
+  // Registrados por cualquier usuario. No dependen de la caja abierta ni
+  // afectan el efectivo: van a su propia tabla.
+
+  ipcMain.handle('add-movimiento-mercadopago', (_, { tipo, monto, concepto, usuario_id, usuario_nombre, fecha }) => {
+    const montoNum = Number(monto);
+    if (tipo !== 'ingreso' && tipo !== 'egreso') return { success: false, error: 'Tipo inválido' };
+    if (!Number.isFinite(montoNum) || montoNum <= 0) return { success: false, error: 'Monto inválido' };
+    if (!concepto || !String(concepto).trim()) return { success: false, error: 'Ingresá un concepto' };
+
+    // Normalizar a 'YYYY-MM-DD HH:MM:SS'. Guardar solo 'YYYY-MM-DD' (10 chars)
+    // rompe los filtros por rango: '2026-09-15' >= '2026-09-15 00:00:00' da false
+    // y el movimiento desapareceria al filtrar "desde" ese mismo dia.
+    const fechaVal = fecha && /^\d{4}-\d{2}-\d{2}$/.test(fecha) ? fecha + ' 00:00:00' : null;
+    const result = fechaVal
+      ? db.prepare(`INSERT INTO movimientos_mercadopago (tipo, monto, concepto, fecha, usuario_id, usuario_nombre)
+                    VALUES (?, ?, ?, ?, ?, ?)`)
+          .run(tipo, montoNum, String(concepto).trim(), fechaVal, usuario_id || null, usuario_nombre || null)
+      : db.prepare(`INSERT INTO movimientos_mercadopago (tipo, monto, concepto, usuario_id, usuario_nombre)
+                    VALUES (?, ?, ?, ?, ?)`)
+          .run(tipo, montoNum, String(concepto).trim(), usuario_id || null, usuario_nombre || null);
+
+    return { success: true, id: result.lastInsertRowid };
+  });
+
+  ipcMain.handle('get-movimientos-mercadopago', (_, { desde, hasta, tipo, usuario_id, solo_propios } = {}) => {
+    const cond = [];
+    const params = [];
+    if (solo_propios && usuario_id) {
+      cond.push('m.usuario_id = ?');
+      params.push(usuario_id);
+    }
+    if (desde) { cond.push('m.fecha >= ?'); params.push(desde + ' 00:00:00'); }
+    if (hasta) { cond.push('m.fecha <= ?'); params.push(hasta + ' 23:59:59'); }
+    if (tipo === 'ingreso' || tipo === 'egreso') { cond.push('m.tipo = ?'); params.push(tipo); }
+
+    const where = cond.length ? 'WHERE ' + cond.join(' AND ') : '';
+    return db.prepare(`
+      SELECT m.id, m.tipo, m.monto, m.concepto, m.fecha, m.usuario_id, m.usuario_nombre, u.username
+      FROM movimientos_mercadopago m
+      LEFT JOIN usuarios u ON u.id = m.usuario_id
+      ${where}
+      ORDER BY m.fecha DESC, m.id DESC
+    `).all(...params);
+  });
+
+  ipcMain.handle('delete-movimiento-mercadopago', (_, { id, usuario_id }) => {
+    const mov = db.prepare('SELECT usuario_id FROM movimientos_mercadopago WHERE id = ?').get(id);
+    if (!mov) return { success: false, error: 'Movimiento no encontrado' };
+    const usuario = db.prepare('SELECT rol FROM usuarios WHERE id = ?').get(usuario_id);
+    const esAdmin = usuario && usuario.rol === 'admin';
+    if (!esAdmin && mov.usuario_id !== usuario_id) {
+      return { success: false, error: 'Solo podés borrar tus propios movimientos' };
+    }
+    db.prepare('DELETE FROM movimientos_mercadopago WHERE id = ?').run(id);
     return { success: true };
   });
 

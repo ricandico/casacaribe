@@ -697,6 +697,7 @@
         <button class="sidebar-btn" data-action="historial"><span class="icon">📋</span> Historial</button>
         <button class="sidebar-btn" data-action="cierre"><span class="icon">📊</span> Cierre de Jornada</button>
         <button class="sidebar-btn" data-action="caja"><span class="icon">💰</span> Movimientos de Caja</button>
+        <button class="sidebar-btn" data-action="mercadopago"><span class="icon">💳</span> Mercado Pago</button>
         <button class="sidebar-btn" data-action="pendientes"><span class="icon">📌</span> Cuentas Pendientes</button>
         <button class="sidebar-btn" data-action="descarte"><span class="icon">🗑️</span> Descartar Productos</button>
         <div class="sidebar-divider"></div>
@@ -910,6 +911,51 @@
     </div>
   </div>
 
+  <div class="modal-overlay" id="modalMercadoPago">
+    <div class="modal" style="width:480px;max-height:85vh;overflow-y:auto">
+      <h2>💳 Cuenta Mercado Pago</h2>
+      <div style="font-size:12px;color:#8a7a6a;margin:-6px 0 14px;background:#faf7f4;border:1px solid #e0d6ca;border-radius:6px;padding:8px 10px">
+        Estos movimientos son de la cuenta de Mercado Pago y <b>no afectan la caja en efectivo</b> ni el cierre de jornada.
+      </div>
+      <div id="mpZonaAgregar" style="display:flex;gap:8px;margin-bottom:16px;padding-bottom:16px;border-bottom:1px solid #e0d6ca;flex-wrap:wrap;align-items:flex-end">
+        <div style="flex:1;min-width:120px">
+          <label style="font-size:12px;font-weight:500;color:#5c3a1e;display:block;margin-bottom:2px">Tipo</label>
+          <select id="mpTipo" style="width:100%;padding:8px;border:1px solid #d4c4b3;border-radius:6px;font-size:13px;background:#faf7f4">
+            <option value="ingreso">Ingreso</option>
+            <option value="egreso">Egreso</option>
+          </select>
+        </div>
+        <div style="flex:1;min-width:100px">
+          <label style="font-size:12px;font-weight:500;color:#5c3a1e;display:block;margin-bottom:2px">Monto ($)</label>
+          <input id="mpMonto" type="number" min="0" step="any" style="width:100%;padding:8px;border:1px solid #d4c4b3;border-radius:6px;font-size:13px;background:#faf7f4">
+        </div>
+        <div style="flex:2;min-width:150px">
+          <label style="font-size:12px;font-weight:500;color:#5c3a1e;display:block;margin-bottom:2px">Concepto</label>
+          <input id="mpConcepto" style="width:100%;padding:8px;border:1px solid #d4c4b3;border-radius:6px;font-size:13px;background:#faf7f4" placeholder="Ej: retiro a banco, comisión MP, devolución...">
+        </div>
+        <button id="btnAgregarMovimientoMP" style="background:#5c3a1e;color:#fff;border:none;padding:8px 18px;border-radius:6px;cursor:pointer;font-weight:600;font-size:13px;height:36px;white-space:nowrap">Agregar</button>
+      </div>
+      <div id="mpMovimientosList"></div>
+      <div style="display:flex;gap:10px;margin-top:12px;padding-top:12px;border-top:1px solid #e0d6ca">
+        <div style="flex:1;background:#e4f0e0;border-radius:8px;padding:10px;text-align:center">
+          <div style="font-size:11px;color:#2d6a1e">Ingresos</div>
+          <div id="mpTotalIngresos" style="font-size:17px;font-weight:700;color:#2d6a1e">$ 0</div>
+        </div>
+        <div style="flex:1;background:#fde0e0;border-radius:8px;padding:10px;text-align:center">
+          <div style="font-size:11px;color:#b33a3a">Egresos</div>
+          <div id="mpTotalEgresos" style="font-size:17px;font-weight:700;color:#b33a3a">$ 0</div>
+        </div>
+        <div style="flex:1;background:#e8ddd2;border-radius:8px;padding:10px;text-align:center">
+          <div style="font-size:11px;color:#5c3a1e">Saldo</div>
+          <div id="mpSaldo" style="font-size:17px;font-weight:700;color:#5c3a1e">$ 0</div>
+        </div>
+      </div>
+      <div class="modal-botones" style="margin-top:12px">
+        <button class="btn-cancel" id="btnCerrarMP">Cerrar</button>
+      </div>
+    </div>
+  </div>
+
   <div class="modal-overlay" id="modalHistorialCierres">
     <div class="modal" style="width:560px;max-height:85vh;overflow-y:auto">
       <h2>Historial de Cierres</h2>
@@ -1094,6 +1140,7 @@
         <button class="contab-tab" data-tab="registrar">➕ Registrar Gasto</button>
         <button class="contab-tab" data-tab="todos">📁 Todos los Gastos</button>
         <button class="contab-tab" data-tab="categorias">🏷️ Categorías</button>
+        <button class="contab-tab" data-tab="mercadopago">💳 Mercado Pago</button>
       </div>
 
       <!-- TAB RESUMEN -->
@@ -1186,6 +1233,33 @@
         </div>
         <div id="contabGridCats" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:12px"></div>
       </div>
+
+      <!-- TAB MERCADO PAGO -->
+      <div class="contab-panel" id="contabMercadopago" style="display:none">
+        <div style="display:flex;gap:8px;margin-bottom:12px;align-items:flex-end;flex-wrap:wrap">
+          <div style="flex:1;min-width:130px">
+            <label style="font-size:12px;font-weight:500;color:#5c3a1e;display:block;margin-bottom:2px">Desde</label>
+            <input id="mpFiltroDesde" type="date" style="width:100%;padding:8px;border:1px solid #d4c4b3;border-radius:6px;font-size:13px;background:#faf7f4;box-sizing:border-box">
+          </div>
+          <div style="flex:1;min-width:130px">
+            <label style="font-size:12px;font-weight:500;color:#5c3a1e;display:block;margin-bottom:2px">Hasta</label>
+            <input id="mpFiltroHasta" type="date" style="width:100%;padding:8px;border:1px solid #d4c4b3;border-radius:6px;font-size:13px;background:#faf7f4;box-sizing:border-box">
+          </div>
+          <div style="flex:1;min-width:120px">
+            <label style="font-size:12px;font-weight:500;color:#5c3a1e;display:block;margin-bottom:2px">Tipo</label>
+            <select id="mpFiltroTipo" style="width:100%;padding:8px;border:1px solid #d4c4b3;border-radius:6px;font-size:13px;background:#faf7f4">
+              <option value="">Todos</option>
+              <option value="ingreso">Ingresos</option>
+              <option value="egreso">Egresos</option>
+            </select>
+          </div>
+          <button id="mpAplicarFiltro" style="background:#5c3a1e;color:#fff;border:none;padding:8px 16px;border-radius:6px;cursor:pointer;font-size:13px;font-weight:600;height:36px">Filtrar</button>
+          <button id="mpLimpiarFiltro" style="background:#e8ddd2;color:#5c3a1e;border:none;padding:8px 14px;border-radius:6px;cursor:pointer;font-size:13px;height:36px">Limpiar</button>
+        </div>
+        <div id="contabMPResumen" style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap"></div>
+        <div id="contabMPLista"></div>
+        <div id="contabMPPaginacion"></div>
+      </div>
     </div>
   </div>
 
@@ -1273,6 +1347,7 @@
       'historial': () => { abrirHistorial(); },
       'cierre': () => { abrirCierre(); },
       'caja': () => { abrirCaja(); },
+      'mercadopago': () => { abrirMercadoPago(); },
       'pendientes': () => { abrirPendientes(); },
       'descarte': () => { abrirDescarte(); },
       'abrir-caja': () => { abrirCajaInicial(); },
@@ -2893,6 +2968,97 @@
       mostrarToast(`Movimiento (${tipo}) registrado: ${formatear(monto)}`);
     });
 
+    // === MERCADO PAGO ===
+    // Registro de la cuenta de Mercado Pago. Es independiente de la caja:
+    // no requiere caja abierta y no altera el efectivo ni el cierre.
+
+    let _mpPagina = 1;
+    const _mpPorPagina = 10;
+
+    async function abrirMercadoPago() {
+      document.getElementById('modalMercadoPago').classList.add('mostrar');
+      _mpPagina = 1;
+      await cargarMercadoPago();
+    }
+
+    async function cargarMercadoPago() {
+      const movs = await window.api.getMovimientosMercadoPago({ solo_propios: false });
+      renderMercadoPago(movs);
+    }
+
+    function renderMercadoPago(movimientos) {
+      const contenedor = document.getElementById('mpMovimientosList');
+      const lista = movimientos || [];
+
+      if (lista.length === 0) {
+        contenedor.innerHTML = '<div style="text-align:center;color:#8a7a6a;padding:20px;font-size:14px">Sin movimientos de Mercado Pago</div>';
+      } else {
+        contenedor.innerHTML = lista.map(m => {
+          const esIngreso = m.tipo === 'ingreso';
+          return `
+            <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid #f0e8e0;font-size:13px">
+              <div style="flex:1">
+                <div style="display:flex;align-items:center;gap:6px">
+                  <span style="font-weight:600;color:${esIngreso ? '#2d6a1e' : '#b33a3a'}">${esIngreso ? '➕' : '➖'} ${esIngreso ? 'Ingreso' : 'Egreso'}</span>
+                  <span style="color:#8a7a6a;font-size:11px">${m.fecha ? m.fecha.replace('T', ' ').slice(0, 16) : ''}</span>
+                  ${m.usuario_nombre ? `<span style="color:#8a7a6a;font-size:11px">· ${m.usuario_nombre}</span>` : ''}
+                </div>
+                <div style="color:#5c3a1e;margin-top:2px">${m.concepto}</div>
+              </div>
+              <div style="display:flex;align-items:center;gap:8px">
+                <span style="font-weight:700;font-size:15px;color:${esIngreso ? '#2d6a1e' : '#b33a3a'}">${esIngreso ? '+' : '-'} ${formatear(m.monto)}</span>
+                <button class="btn-del-mp" data-id="${m.id}" style="background:none;border:none;color:#b33a3a;cursor:pointer;font-size:16px;padding:2px;line-height:1" title="Eliminar">×</button>
+              </div>
+            </div>`;
+        }).join('');
+
+        contenedor.querySelectorAll('.btn-del-mp').forEach(btn => {
+          btn.addEventListener('click', async () => {
+            if (!confirm('¿Eliminar este movimiento de Mercado Pago?')) return;
+            const r = await window.api.deleteMovimientoMercadoPago({
+              id: parseInt(btn.dataset.id),
+              usuario_id: usuarioActual.id
+            });
+            if (!r || !r.success) { mostrarToast((r && r.error) || 'No se pudo eliminar'); return; }
+            await cargarMercadoPago();
+            mostrarToast('Movimiento eliminado');
+          });
+        });
+      }
+
+      const totalIngresos = lista.filter(m => m.tipo === 'ingreso').reduce((s, m) => s + m.monto, 0);
+      const totalEgresos = lista.filter(m => m.tipo === 'egreso').reduce((s, m) => s + m.monto, 0);
+      document.getElementById('mpTotalIngresos').textContent = formatear(totalIngresos);
+      document.getElementById('mpTotalEgresos').textContent = formatear(totalEgresos);
+      document.getElementById('mpSaldo').textContent = formatear(totalIngresos - totalEgresos);
+    }
+
+    document.getElementById('btnCerrarMP').addEventListener('click', () => {
+      document.getElementById('modalMercadoPago').classList.remove('mostrar');
+    });
+
+    document.getElementById('btnAgregarMovimientoMP').addEventListener('click', async () => {
+      const tipo = document.getElementById('mpTipo').value;
+      const monto = parseFloat(document.getElementById('mpMonto').value);
+      const concepto = document.getElementById('mpConcepto').value.trim();
+
+      if (!monto || monto <= 0 || !Number.isFinite(monto)) { mostrarToast('Ingresá un monto válido'); return; }
+      if (!concepto) { mostrarToast('Ingresá un concepto'); return; }
+
+      const r = await window.api.addMovimientoMercadoPago({
+        tipo, monto, concepto,
+        usuario_id: usuarioActual.id,
+        usuario_nombre: usuarioActual.username,
+      });
+
+      if (!r || !r.success) { mostrarToast((r && r.error) || 'No se pudo registrar'); return; }
+
+      document.getElementById('mpMonto').value = '';
+      document.getElementById('mpConcepto').value = '';
+      await cargarMercadoPago();
+      mostrarToast(`Movimiento de Mercado Pago (${tipo}) registrado: ${formatear(monto)}`);
+    });
+
 
 
     let usuarioActual = null;
@@ -3891,6 +4057,99 @@
       await cargarHistorialMovimientos();
     });
 
+    // === CONTABILIDAD: pestana Mercado Pago (solo admins) ===
+    let _mpContabData = [];
+    let _mpContabPagina = 1;
+    const _mpContabPorPagina = 10;
+
+    async function cargarMercadoPagoContabilidad() {
+      const desde = document.getElementById('mpFiltroDesde').value;
+      const hasta = document.getElementById('mpFiltroHasta').value;
+      const tipo = document.getElementById('mpFiltroTipo').value;
+      _mpContabData = await window.api.getMovimientosMercadoPago({ desde, hasta, tipo }) || [];
+      _mpContabPagina = 1;
+      _renderMPContabPagina();
+    }
+
+    function _renderMPContabPagina() {
+      const contenedor = document.getElementById('contabMPLista');
+      const resumen = document.getElementById('contabMPResumen');
+      const lista = _mpContabData;
+
+      const totalIngresos = lista.filter(m => m.tipo === 'ingreso').reduce((s, m) => s + m.monto, 0);
+      const totalEgresos = lista.filter(m => m.tipo === 'egreso').reduce((s, m) => s + m.monto, 0);
+      resumen.innerHTML = `
+        <div style="flex:1;min-width:110px;background:#e4f0e0;border-radius:8px;padding:10px;text-align:center">
+          <div style="font-size:11px;color:#2d6a1e">Ingresos</div>
+          <div style="font-size:16px;font-weight:700;color:#2d6a1e">${formatear(totalIngresos)}</div>
+        </div>
+        <div style="flex:1;min-width:110px;background:#fde0e0;border-radius:8px;padding:10px;text-align:center">
+          <div style="font-size:11px;color:#b33a3a">Egresos</div>
+          <div style="font-size:16px;font-weight:700;color:#b33a3a">${formatear(totalEgresos)}</div>
+        </div>
+        <div style="flex:1;min-width:110px;background:#e8ddd2;border-radius:8px;padding:10px;text-align:center">
+          <div style="font-size:11px;color:#5c3a1e">Saldo</div>
+          <div style="font-size:16px;font-weight:700;color:#5c3a1e">${formatear(totalIngresos - totalEgresos)}</div>
+        </div>
+        <div style="flex:1;min-width:110px;background:#f0f7ff;border-radius:8px;padding:10px;text-align:center">
+          <div style="font-size:11px;color:#1a6a9e">Movimientos</div>
+          <div style="font-size:16px;font-weight:700;color:#1a6a9e">${lista.length}</div>
+        </div>`;
+
+      if (lista.length === 0) {
+        contenedor.innerHTML = '<div style="text-align:center;color:#8a7a6a;padding:20px">No hay movimientos de Mercado Pago en el periodo</div>';
+        document.getElementById('contabMPPaginacion').innerHTML = '';
+        return;
+      }
+
+      const { items, pagina, totalPaginas } = paginar(lista, _mpContabPagina, _mpContabPorPagina);
+
+      contenedor.innerHTML = items.map(m => {
+        const esIngreso = m.tipo === 'ingreso';
+        return `
+          <div style="display:flex;justify-content:space-between;align-items:center;padding:9px 0;border-bottom:1px solid #f0e8e0;font-size:13px">
+            <div style="flex:1">
+              <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap">
+                <span style="font-weight:600;color:${esIngreso ? '#2d6a1e' : '#b33a3a'}">${esIngreso ? '➕' : '➖'} ${esIngreso ? 'Ingreso' : 'Egreso'}</span>
+                <span style="color:#8a7a6a;font-size:11px">${m.fecha ? m.fecha.replace('T', ' ').slice(0, 16) : ''}</span>
+                ${m.username || m.usuario_nombre ? `<span style="color:#8a7a6a;font-size:11px">· ${m.username || m.usuario_nombre}</span>` : ''}
+              </div>
+              <div style="color:#5c3a1e;margin-top:2px">${m.concepto}</div>
+            </div>
+            <div style="display:flex;align-items:center;gap:8px">
+              <span style="font-weight:700;font-size:15px;color:${esIngreso ? '#2d6a1e' : '#b33a3a'}">${esIngreso ? '+' : '-'} ${formatear(m.monto)}</span>
+              <button class="btn-del-mpc" data-id="${m.id}" style="background:none;border:none;color:#b33a3a;cursor:pointer;font-size:16px;padding:2px;line-height:1" title="Eliminar">×</button>
+            </div>
+          </div>`;
+      }).join('');
+
+      contenedor.querySelectorAll('.btn-del-mpc').forEach(btn => {
+        btn.addEventListener('click', async () => {
+          if (!confirm('¿Eliminar este movimiento de Mercado Pago?')) return;
+          const r = await window.api.deleteMovimientoMercadoPago({
+            id: parseInt(btn.dataset.id),
+            usuario_id: usuarioActual.id
+          });
+          if (!r || !r.success) { mostrarToast((r && r.error) || 'No se pudo eliminar'); return; }
+          await cargarMercadoPagoContabilidad();
+          mostrarToast('Movimiento eliminado');
+        });
+      });
+
+      renderPaginacion('contabMPPaginacion', totalPaginas, pagina, (pg) => {
+        _mpContabPagina = pg;
+        _renderMPContabPagina();
+      });
+    }
+
+    document.getElementById('mpAplicarFiltro').addEventListener('click', cargarMercadoPagoContabilidad);
+    document.getElementById('mpLimpiarFiltro').addEventListener('click', async () => {
+      document.getElementById('mpFiltroDesde').value = '';
+      document.getElementById('mpFiltroHasta').value = '';
+      document.getElementById('mpFiltroTipo').value = '';
+      await cargarMercadoPagoContabilidad();
+    });
+
     // === CONTABILIDAD ===
     let _contabGastosPagina = 1;
     let _contabCategoriasCache = [];
@@ -3909,6 +4168,7 @@
         if (tab.dataset.tab === 'resumen') cargarResumenContabilidad();
         if (tab.dataset.tab === 'todos') cargarGastosContabilidad();
         if (tab.dataset.tab === 'categorias') cargarCategoriasContabilidad();
+        if (tab.dataset.tab === 'mercadopago') cargarMercadoPagoContabilidad();
       });
     });
 
