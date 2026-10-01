@@ -1525,7 +1525,8 @@
     }
 
     function formatear(n) {
-      return '$ ' + n.toLocaleString('es-AR', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
+      const v = Number(n);
+      return '$ ' + (Number.isFinite(v) ? v : 0).toLocaleString('es-AR', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
     }
 
     function customPrompt(msg, defaultValue = '') {
@@ -2665,10 +2666,10 @@
             const difTxt = Math.abs(dif) < 0.01 ? '' : ` <span style="color:${difColor};font-size:11px">(${dif > 0 ? '+' : ''}${formatear(dif)})</span>`;
             if (d.ventas !== undefined) {
               return `<div style="font-size:12px;line-height:1.6">
-                <span style="font-weight:500">${m}:</span> ${formatear(d.ventas)} vendidos vs ${formatear(d.cobros || d.total)} cobrados${difTxt}
+                <span style="font-weight:500">${m}:</span> ${formatear(d.ventas)} vendidos vs ${formatear(d.cobros ?? d.total ?? 0)} cobrados${difTxt}
               </div>`;
             }
-            return `<div style="font-size:12px"><span style="font-weight:500">${m}:</span> ${formatear(d.total || d)}${difTxt}</div>`;
+            return `<div style="font-size:12px"><span style="font-weight:500">${m}:</span> ${formatear(d.total ?? d ?? 0)}${difTxt}</div>`;
           }).join('');
         } else {
           pagosHtml = Object.entries(porPago).map(([m, t]) =>
